@@ -9,24 +9,25 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fny/firebase-bolt-transpiler.git"
+    "url": "git+https://github.com/sirctseb/firebase-bolt-transpiler.git"
   },
   "author": "Faraz Yashar",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/fny/firebase-bolt-transpiler/issues"
+    "url": "https://github.com/sirctseb/firebase-bolt-transpiler/issues"
   },
-  "homepage": "https://github.com/fny/firebase-bolt-transpiler#readme",
+  "homepage": "https://github.com/sirctseb/firebase-bolt-transpiler#readme",
   "dependencies": {
     "firebase-bolt": "^0.8.0",
     "lodash": "^4.13.1"
   },
   "devDependencies": {
-    "eslint": "^2.11.1",
-    "eslint-config-airbnb-base": "^3.0.1",
-    "eslint-plugin-import": "^1.8.1",
+    "eslint": "^7.25.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^3.4.0",
     "glob": "^7.0.5",
     "jasmine": "^2.4.1",
-    "jasmine-diff-matchers": "^2.0.0"
+    "jasmine-diff-matchers": "^2.0.0",
+    "typescript": "^4.2.4"
   }
 }
