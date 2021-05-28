@@ -14,7 +14,6 @@ function convertBuiltin(builtin) {
   return BOLT_BUILTIN_MAPPING[builtin] || builtin;
 }
 
-
 function ts(type) {
   if (typeof type === 'string') {
     return convertBuiltin(type);
@@ -47,8 +46,8 @@ function tse(type) {
 
 // Private:
 function unionPropertyLine(name, types) {
-  const isNullable = _.some(types, type => type.name === 'Null');
-  const tsTypes = types.filter(type => type.name !== 'Null');
+  const isNullable = _.some(types, (type) => type.name === 'Null');
+  const tsTypes = types.filter((type) => type.name !== 'Null');
 
   let str = '';
   str += name;
@@ -98,7 +97,7 @@ function propertyLine(property) {
 // defined parent or properties.
 function interfaceExtension(type) {
   if (type.parent !== 'Object') {
-    if (type.parent !== 'Any' || type.parent === 'Any' && type.properties !== []) {
+    if (type.parent !== 'Any' || (type.parent === 'Any' && type.properties !== [])) {
       return ` extends ${tse(type.definition.derivedFrom)}`;
     }
     return '';
@@ -119,10 +118,10 @@ function interfaceOpen(type) {
 // simpleBoltSchema - SimpleBoltSchema
 function render(simpleBoltSchema) {
   let str = '';
-  simpleBoltSchema.types.forEach(type => {
+  simpleBoltSchema.types.forEach((type) => {
     str += interfaceOpen(type);
     str += '\n';
-    type.properties.forEach(property => {
+    type.properties.forEach((property) => {
       str += '  ';
       str += propertyLine(property);
       str += '\n';
