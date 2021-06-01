@@ -1,5 +1,4 @@
 import { ExpGenericType, ExpType } from 'firebase-bolt/lib/ast';
-import _ from 'lodash';
 import SimpleBoltSchema, {
   TopLevelType,
   TypeProperty,

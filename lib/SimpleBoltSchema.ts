@@ -1,5 +1,4 @@
 import { ExpGenericType, ExpSimpleType, ExpType, ExpUnionType, Schema } from 'firebase-bolt/lib/ast';
-import _ from 'lodash';
 
 export const isSimpleType = (type: ExpType): type is ExpSimpleType => type.type === 'type';
 export const isGenericType = (type: ExpType): type is ExpGenericType => type.type === 'generic';
@@ -37,7 +36,7 @@ export class TopLevelType {
       this.parent = typeDefinition.derivedFrom.name;
     }
     this.params = typeDefinition.params;
-    this.properties = _.map(typeDefinition.properties, (typeDef: ExpType, propName: string) => {
+    this.properties = Object.entries(typeDefinition.properties).map(([propName, typeDef]) => {
       return new TypeProperty(propName, typeDef);
     });
   }
@@ -47,7 +46,7 @@ class SimpleBoltSchema {
   types: TopLevelType[];
   // boltSchema - schema produced by `bolt#parse`
   constructor(boltSchema: { [key: string]: Schema }) {
-    this.types = _.map(boltSchema, (typeDef, typeName) => {
+    this.types = Object.entries(boltSchema).map(([typeName, typeDef]) => {
       return new TopLevelType(typeName, typeDef);
     });
   }

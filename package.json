@@ -23,11 +23,9 @@
   },
   "homepage": "https://github.com/sirctseb/firebase-bolt-transpiler#readme",
   "dependencies": {
-    "firebase-bolt": "^0.8.0",
-    "lodash": "^4.13.1"
+    "firebase-bolt": "^0.8.0"
   },
   "devDependencies": {
-    "@types/lodash": "^4.14.170",
     "eslint": "^7.25.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^3.4.0",
