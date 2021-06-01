@@ -1,7 +1,15 @@
-const _ = require('lodash');
+import { ExpGenericType, ExpType } from 'firebase-bolt/lib/ast';
+import _ from 'lodash';
+import SimpleBoltSchema, {
+  TopLevelType,
+  TypeProperty,
+  isGenericType,
+  isUnionType,
+  isSimpleType,
+} from './SimpleBoltSchema';
 
 // Private: Mappings from some Bolt built-in types to their TypeScript equivalents
-const BOLT_BUILTIN_MAPPING = {
+const BOLT_BUILTIN_MAPPING: Record<string, string> = {
   Any: 'any',
   Boolean: 'boolean',
   Number: 'number',
@@ -10,18 +18,23 @@ const BOLT_BUILTIN_MAPPING = {
   String: 'string',
 };
 
-function convertBuiltin(builtin) {
+// | string?
+function convertBuiltin(builtin: string): string {
   return BOLT_BUILTIN_MAPPING[builtin] || builtin;
 }
 
-function ts(type) {
+function ts(type: ExpType | string): string {
   if (typeof type === 'string') {
     return convertBuiltin(type);
   }
 
+  if (isUnionType(type)) {
+    throw new Error('Cannot generate a typescript expression for a union type here');
+  }
+
   let str = convertBuiltin(type.name);
 
-  if (type.params && type.params.length > 0) {
+  if (isGenericType(type) && type.params && type.params.length > 0) {
     str += '<';
     str += type.params.map(ts).join(', ');
     str += '>';
@@ -29,14 +42,18 @@ function ts(type) {
   return str;
 }
 
-function tse(type) {
+function tse(type: TopLevelType | ExpType): string {
   if (typeof type === 'string') {
     return convertBuiltin(type);
   }
 
+  if (!(type instanceof TopLevelType) && isUnionType(type)) {
+    throw new Error('Cannot generate a typescript expression for a union type here');
+  }
+
   let str = type.name;
 
-  if (type.params && type.params.length > 0) {
+  if ((type instanceof TopLevelType || isGenericType(type)) && type.params && type.params.length > 0) {
     str += '<';
     str += type.params.map(ts).join(', ');
     str += '>';
@@ -45,9 +62,9 @@ function tse(type) {
 }
 
 // Private:
-function unionPropertyLine(name, types) {
-  const isNullable = _.some(types, (type) => type.name === 'Null');
-  const tsTypes = types.filter((type) => type.name !== 'Null');
+function unionPropertyLine(name: string, types: ExpType[]): string {
+  const isNullable = types.some((type) => !isUnionType(type) && type.name === 'Null');
+  const tsTypes = types.filter((type) => isUnionType(type) || type.name !== 'Null');
 
   let str = '';
   str += name;
@@ -58,12 +75,16 @@ function unionPropertyLine(name, types) {
   return str;
 }
 
-function mapPropertyLine(name, typeDefiniton) {
-  const mapType = typeDefiniton.params[1].name;
-  return `${name}: { [key: string]: ${convertBuiltin(mapType)}; };`;
+function mapPropertyLine(name: string, typeDefiniton: ExpGenericType): string {
+  // TODO support union types in maps
+  const mappedType = typeDefiniton.params[1];
+  if (isUnionType(mappedType)) {
+    throw new Error('Maps to union types are not currently supported');
+  }
+  return `${name}: { [key: string]: ${convertBuiltin(mappedType.name)}; };`;
 }
 
-function genericPropertyLine(name, typeDef) {
+function genericPropertyLine(name: string, typeDef: ExpGenericType): string {
   switch (typeDef.name) {
     case 'Map':
       return mapPropertyLine(name, typeDef);
@@ -72,19 +93,17 @@ function genericPropertyLine(name, typeDef) {
   }
 }
 
-function propertyLine(property) {
+function propertyLine(property: TypeProperty): string {
   const name = property.name;
   const typeDef = property.definition;
 
-  switch (typeDef.type) {
-    case 'type':
-      return `${name}: ${convertBuiltin(typeDef.name)};`;
-    case 'union':
-      return unionPropertyLine(name, typeDef.types);
-    case 'generic':
-      return genericPropertyLine(name, typeDef);
-    default:
-      throw new Error(`Unknown type ${typeDef.type}`);
+  if (isSimpleType(typeDef)) {
+    return `${name}: ${convertBuiltin(typeDef.name)};`;
+  } else if (isUnionType(typeDef)) {
+    return unionPropertyLine(name, typeDef.types);
+  } else {
+    //if (isGenericType(typeDef)) {
+    return genericPropertyLine(name, typeDef);
   }
 }
 
@@ -95,7 +114,7 @@ function propertyLine(property) {
 //
 // Note this will return `extends Any` for any Bolt defintion without any
 // defined parent or properties.
-function interfaceExtension(type) {
+function interfaceExtension(type: TopLevelType): string {
   if (type.parent !== 'Object') {
     if (type.parent !== 'Any' || (type.parent === 'Any' && type.properties !== [])) {
       return ` extends ${tse(type.definition.derivedFrom)}`;
@@ -106,7 +125,7 @@ function interfaceExtension(type) {
 }
 
 // type - TopLevelType
-function interfaceOpen(type) {
+function interfaceOpen(type: TopLevelType): string {
   let str = '';
   str += 'interface ';
   str += tse(type);
@@ -116,7 +135,7 @@ function interfaceOpen(type) {
 }
 
 // simpleBoltSchema - SimpleBoltSchema
-function render(simpleBoltSchema) {
+function render(simpleBoltSchema: SimpleBoltSchema): string {
   let str = '';
   simpleBoltSchema.types.forEach((type) => {
     str += interfaceOpen(type);
@@ -134,4 +153,4 @@ function render(simpleBoltSchema) {
 render.interfaceOpen = interfaceOpen;
 render.propertyLine = propertyLine;
 
-module.exports = render;
+export default render;

@@ -1,33 +1,56 @@
-const _ = require('lodash');
+import { ExpGenericType, ExpSimpleType, ExpType, ExpUnionType, Schema } from 'firebase-bolt/lib/ast';
+import _ from 'lodash';
 
-class TypeProperty {
-  constructor(name, typeDefinition) {
+export const isSimpleType = (type: ExpType): type is ExpSimpleType => type.type === 'type';
+export const isGenericType = (type: ExpType): type is ExpGenericType => type.type === 'generic';
+export const isUnionType = (type: ExpType): type is ExpUnionType => type.type === 'union';
+
+export class TypeProperty {
+  name: string;
+  definition: ExpType;
+  params?: ExpType[];
+  types?: ExpType[];
+
+  constructor(name: string, typeDefinition: ExpType) {
     this.name = name;
     this.definition = typeDefinition;
-    this.params = typeDefinition.params;
-    this.types = typeDefinition.types;
+    if (isGenericType(typeDefinition)) {
+      this.params = typeDefinition.params;
+    }
+    if (isUnionType(typeDefinition)) {
+      this.types = typeDefinition.types;
+    }
   }
 }
 
-class TopLevelType {
-  constructor(name, typeDefinition) {
+export class TopLevelType {
+  name: string;
+  definition: Schema;
+  parent?: string;
+  params?: string[];
+  properties: TypeProperty[];
+
+  constructor(name: string, typeDefinition: Schema) {
     this.name = name;
     this.definition = typeDefinition;
-    this.parent = typeDefinition.derivedFrom.name;
+    if (!isUnionType(typeDefinition.derivedFrom)) {
+      this.parent = typeDefinition.derivedFrom.name;
+    }
     this.params = typeDefinition.params;
-    this.properties = _.map(typeDefinition.properties, (typeDef, propName) => {
+    this.properties = _.map(typeDefinition.properties, (typeDef: ExpType, propName: string) => {
       return new TypeProperty(propName, typeDef);
     });
   }
 }
 
 class SimpleBoltSchema {
+  types: TopLevelType[];
   // boltSchema - schema produced by `bolt#parse`
-  constructor(boltSchema) {
+  constructor(boltSchema: { [key: string]: Schema }) {
     this.types = _.map(boltSchema, (typeDef, typeName) => {
       return new TopLevelType(typeName, typeDef);
     });
   }
 }
 
-module.exports = SimpleBoltSchema;
+export default SimpleBoltSchema;

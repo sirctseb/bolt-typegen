@@ -2,7 +2,12 @@
   "name": "firebase-bolt-transpiler",
   "version": "0.1.0",
   "description": "Transpile Bolt type definitions to TypeScript",
-  "keywords": ["firebase", "bolt", "typescript"],
+  "type": "module",
+  "keywords": [
+    "firebase",
+    "bolt",
+    "typescript"
+  ],
   "main": "index.js",
   "scripts": {
     "test": "jasmine"
@@ -22,6 +27,7 @@
     "lodash": "^4.13.1"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.170",
     "eslint": "^7.25.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^3.4.0",
