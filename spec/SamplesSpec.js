@@ -1,12 +1,12 @@
 const fs = require('fs');
 const glob = require('glob');
 const path = require('path');
-const parser = require('../index.js').typescript;
+const parser = require('../dist/index.js').generateTypes;
 const diffMatchers = require('jasmine-diff-matchers');
 
 const samplesPath = path.join(__dirname, '../samples/*.bolt');
 const samplesFiles = glob.sync(samplesPath);
-const samples = samplesFiles.map(file => {
+const samples = samplesFiles.map((file) => {
   return {
     name: path.basename(file),
     boltFile: file,

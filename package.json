@@ -2,7 +2,6 @@
   "name": "firebase-bolt-transpiler",
   "version": "0.1.0",
   "description": "Transpile Bolt type definitions to TypeScript",
-  "type": "module",
   "keywords": [
     "firebase",
     "bolt",

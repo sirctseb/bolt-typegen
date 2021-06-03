@@ -1,7 +1,6 @@
 const bolt = require('firebase-bolt');
-const SimpleBoltSchema = require('../../lib/SimpleBoltSchema.js');
-const renderTypeScript = require('../../lib/renderTypeScript.js');
-const _ = require('lodash');
+const SimpleBoltSchema = require('../../dist/lib/SimpleBoltSchema.js').default;
+const renderTypeScript = require('../../dist/lib/renderTypeScript.js').default;
 
 const boltExample = `
 type Type {}
@@ -47,9 +46,19 @@ type PropertyLineCheck {
 }
 `;
 
+console.log(SimpleBoltSchema);
+
 const schema = new SimpleBoltSchema(bolt.parse(boltExample).schema);
-const typesByName = _.keyBy(schema.types, 'name');
-const propsByName = _.keyBy(typesByName.PropertyLineCheck.properties, 'name');
+const keyBy = (array, key) => {
+  const result = {};
+  array.forEach((entry) => {
+    result[entry[key]] = entry;
+  });
+  return result;
+};
+
+const typesByName = keyBy(schema.types, 'name');
+const propsByName = keyBy(typesByName.PropertyLineCheck.properties, 'name');
 
 function interfaceOpen(interfaceName) {
   return renderTypeScript.interfaceOpen(typesByName[interfaceName]);
@@ -61,28 +70,23 @@ function propertyLine(propName) {
 describe('renderTypeScript', () => {
   describe('interfaceOpen', () => {
     it('simple type with properties', () => {
-      expect(interfaceOpen('SimpleType'))
-        .toEqual('interface SimpleType {');
+      expect(interfaceOpen('SimpleType')).toEqual('interface SimpleType {');
     });
 
     it('generic type with properties', () => {
-      expect(interfaceOpen('GenericType'))
-        .toEqual('interface GenericType<T> {');
+      expect(interfaceOpen('GenericType')).toEqual('interface GenericType<T> {');
     });
 
     it('generic type with multiple parameters', () => {
-      expect(interfaceOpen('Pairs'))
-        .toEqual('interface Pairs<X, Y> {');
+      expect(interfaceOpen('Pairs')).toEqual('interface Pairs<X, Y> {');
     });
 
     it('type without any properties (should extend Any)', () => {
-      expect(interfaceOpen('NoDefinedProperties'))
-        .toEqual('interface NoDefinedProperties extends Any {');
+      expect(interfaceOpen('NoDefinedProperties')).toEqual('interface NoDefinedProperties extends Any {');
     });
 
     it('type which extends another type', () => {
-      expect(interfaceOpen('StringExtension'))
-        .toEqual('interface StringExtension extends String {');
+      expect(interfaceOpen('StringExtension')).toEqual('interface StringExtension extends String {');
     });
 
     // it('type which extends Object', () => {
@@ -91,13 +95,11 @@ describe('renderTypeScript', () => {
     // });
 
     it('type which extends a generic with a single parameter', () => {
-      expect(interfaceOpen('GenericExtension'))
-        .toEqual('interface GenericExtension extends GenericType<number> {');
+      expect(interfaceOpen('GenericExtension')).toEqual('interface GenericExtension extends GenericType<number> {');
     });
 
     it('type which extends a generic with multiple parameters', () => {
-      expect(interfaceOpen('PairExtension'))
-        .toEqual('interface PairExtension extends Pair<number, string> {');
+      expect(interfaceOpen('PairExtension')).toEqual('interface PairExtension extends Pair<number, string> {');
     });
   });
 
@@ -149,7 +151,8 @@ describe('renderTypeScript', () => {
   });
 
   it('nested union with generic', () => {
-    expect(propertyLine('nested_generic_union'))
-      .toEqual('nested_generic_union: Pair<Pair<number, string>, string> | number;');
+    expect(propertyLine('nested_generic_union')).toEqual(
+      'nested_generic_union: Pair<Pair<number, string>, string> | number;'
+    );
   });
 });
