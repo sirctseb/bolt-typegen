@@ -13,7 +13,7 @@ interface Member {
   nickname: NameString;
   isBanned: boolean;
 }
-interface NameString extends Any {
+interface NameString {
 }
 interface Timestamped<T> extends T {
   created: Created;
