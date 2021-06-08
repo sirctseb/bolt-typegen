@@ -15,15 +15,14 @@ const samples = samplesFiles.map((file) => {
 });
 
 beforeEach(() => {
-  jasmine.addMatchers(diffMatchers);
+  jasmine.addMatchers(diffMatchers.diffPatch);
 });
 
 function testSample(sample) {
-  it(sample.name, (done) => {
+  it(sample.name, () => {
     const boltString = fs.readFileSync(sample.boltFile).toString();
     const tsString = fs.readFileSync(sample.tsFile).toString();
-    expect(parser(boltString)).toEqual(tsString);
-    done();
+    expect(parser(boltString)).diffPatch(tsString);
   });
 }
 
