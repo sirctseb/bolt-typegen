@@ -1,0 +1,44 @@
+/**
+ * In firebase, there are no empty objects. An object with no keys is deleted and
+ * there will be no value at runtime. This can happen in ways that are not declared
+ * in the bolt type system, but we need to account for them in the emitted typescript.
+ */
+
+// The value at mapField is an arbitrary object, which means it can have 0 keys and will
+// be deleted, and mapField itself is implicitly nullable
+type A {
+  mapField: Map<String, Boolean>
+}
+
+
+// This holds for maps declared with the [] syntax
+type B {
+  mapField: Boolean[]
+}
+
+
+// C explicitly declares its properties, but they are all nullable, meaning it can have
+// 0 and will then be deleted, so the field, c, having value C, is implicitly nullable
+type C {
+  nullableField: Boolean | Null
+}
+type CHost {
+  c: C
+}
+
+
+// Implicit nullability propagates up
+type E {
+  nullableField: Boolean | Null
+}
+
+type D {
+  nullableField: Boolean | Null
+  e: E
+}
+
+type DHost {
+  d: D
+}
+
+
