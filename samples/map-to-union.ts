@@ -1,3 +1,3 @@
-interface MapToUnion {
+export interface MapToUnion {
   field: { [key: string]: string | number; };
 }

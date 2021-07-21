@@ -1,12 +1,8 @@
-interface PositiveInteger extends Number {
-}
-interface UnixTimestamp extends PositiveInteger {
-}
-interface NonEmptyString extends String {
-}
-interface URL extends String {
-}
-interface Test {
+export type PositiveInteger = number;
+export type UnixTimestamp = PositiveInteger;
+export type NonEmptyString = string;
+export type URL = string;
+export interface Test {
   time: UnixTimestamp;
   name: NonEmptyString;
   url: URL;

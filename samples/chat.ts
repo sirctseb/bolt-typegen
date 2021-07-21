@@ -1,30 +1,23 @@
-interface RoomInfo {
+export interface RoomInfo {
   name: NameString;
   creator: UserID;
   members: { [key: string]: Member; };
 }
-interface Post {
+export interface Post {
   from: UserID;
   message: MessageString;
 }
-interface MessageString extends String {
-}
-interface Member {
+export type MessageString = string;
+export interface Member {
   nickname: NameString;
   isBanned: boolean;
 }
-interface NameString {
-}
-interface Timestamped<T> extends T {
+export type NameString = any;
+export type Timestamped<T> = T & {
   created: Created;
 }
-interface Created extends Number {
-}
-interface Modified extends Number {
-}
-interface PushID extends String {
-}
-interface RoomID extends String {
-}
-interface UserID extends String {
-}
+export type Created = number;
+export type Modified = number;
+export type PushID = string;
+export type RoomID = string;
+export type UserID = string;

@@ -1,9 +1,8 @@
-interface Product {
+export interface Product {
   name: string;
   cost: number;
 }
-interface Serialized<T> extends T {
+export type Serialized<T> = T & {
   counter: Counter;
 }
-interface Counter extends Number {
-}
+export type Counter = number;

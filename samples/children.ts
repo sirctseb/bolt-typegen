@@ -1,5 +1,4 @@
-interface Child {
+export interface Child {
   age: number;
 }
-interface Parent {
-}
+export type Parent = any;
