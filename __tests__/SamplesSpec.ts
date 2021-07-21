@@ -1,8 +1,8 @@
-const fs = require('fs');
-const glob = require('glob');
-const path = require('path');
-const parser = require('../dist/index.js').generateTypes;
-const diffMatchers = require('jasmine-diff-matchers');
+import fs from 'fs';
+import glob from 'glob';
+import path from 'path';
+import { generateTypes as parser } from '../dist/index';
+import { describe, it, expect, beforeEach } from '@jest/globals';
 
 const samplesPath = path.join(__dirname, '../samples/*.bolt');
 const samplesFiles = glob.sync(samplesPath);
@@ -14,15 +14,12 @@ const samples = samplesFiles.map((file) => {
   };
 });
 
-beforeEach(() => {
-  jasmine.addMatchers(diffMatchers.diffPatch);
-});
-
-function testSample(sample) {
+function testSample(sample: any) {
   it(sample.name, () => {
     const boltString = fs.readFileSync(sample.boltFile).toString();
     const tsString = fs.readFileSync(sample.tsFile).toString();
-    expect(parser(boltString)).diffPatch(tsString);
+    // @ts-ignore
+    expect(parser(boltString)).toBe(tsString);
   });
 }
 

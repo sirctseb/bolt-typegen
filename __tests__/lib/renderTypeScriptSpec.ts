@@ -1,6 +1,7 @@
-const bolt = require('firebase-bolt');
-const SimpleBoltSchema = require('../../dist/lib/SimpleBoltSchema.js').default;
-const renderTypeScript = require('../../dist/lib/renderTypeScript.js').default;
+import { parse } from 'firebase-bolt';
+import SimpleBoltSchema from '../../dist/lib/SimpleBoltSchema';
+import renderTypeScript from '../../dist/lib/renderTypeScript';
+import { describe, expect, it } from '@jest/globals';
 
 const boltExample = `
 type Type {}
@@ -46,24 +47,26 @@ type PropertyLineCheck {
 }
 `;
 
-console.log(SimpleBoltSchema);
-
-const schema = new SimpleBoltSchema(bolt.parse(boltExample).schema);
-const keyBy = (array, key) => {
-  const result = {};
+const schema = new SimpleBoltSchema(parse(boltExample).schema);
+function keyBy<T>(array: T[], key: keyof T): Record<string, T> {
+  const result: Record<string, T> = {};
   array.forEach((entry) => {
-    result[entry[key]] = entry;
+    const keyValue = entry[key];
+    if (typeof keyValue === 'string') {
+      result[keyValue] = entry;
+    }
   });
   return result;
-};
+}
 
 const typesByName = keyBy(schema.types, 'name');
+// @ts-ignore
 const propsByName = keyBy(typesByName.PropertyLineCheck.properties, 'name');
 
-function interfaceOpen(interfaceName) {
+function interfaceOpen(interfaceName: string) {
   return renderTypeScript.interfaceOpen(typesByName[interfaceName]);
 }
-function propertyLine(propName) {
+function propertyLine(propName: string) {
   return renderTypeScript.propertyLine(propsByName[propName]);
 }
 
@@ -81,8 +84,8 @@ describe('renderTypeScript', () => {
       expect(interfaceOpen('Pairs')).toEqual('interface Pairs<X, Y> {');
     });
 
-    it('type without any properties (should extend Any)', () => {
-      expect(interfaceOpen('NoDefinedProperties')).toEqual('interface NoDefinedProperties extends Any {');
+    it('type without any properties (should alias any)', () => {
+      expect(interfaceOpen('NoDefinedProperties')).toEqual('type NoDefinedProperties = any');
     });
 
     it('type which extends another type', () => {
