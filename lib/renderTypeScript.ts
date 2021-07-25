@@ -1,5 +1,7 @@
-import { ExpGenericType, ExpType, ExpUnionType, Schema } from 'firebase-bolt/lib/ast';
-import { isGenericType, isSimpleType } from './SimpleBoltSchema';
+import { ExpSimpleType, ExpGenericType, ExpType, ExpUnionType, Schema } from 'firebase-bolt/lib/ast';
+export const isSimpleType = (type: ExpType): type is ExpSimpleType => type.type === 'type';
+export const isGenericType = (type: ExpType): type is ExpGenericType => type.type === 'generic';
+export const isUnionType = (type: ExpType): type is ExpUnionType => type.type === 'union';
 
 // Private: Mappings from some Bolt built-in types to their TypeScript equivalents
 const BOLT_BUILTIN_MAPPING: Record<string, string> = {
