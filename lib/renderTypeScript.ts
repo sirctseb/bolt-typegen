@@ -15,8 +15,14 @@ function convertBuiltin(builtin: string): string {
   return BOLT_BUILTIN_MAPPING[builtin] || builtin;
 }
 
+const renderMapExpression = (expression: ExpGenericType): string => {
+  return `{ [key: string]: ${renderTypeExpression(expression.params[1])}; }`;
+};
+
 const renderGenericTypeExpression = (expression: ExpGenericType): string => {
-  return `${expression.name}<${expression.params.map(renderTypeExpression).join(', ')}>`;
+  return expression.name === 'Map'
+    ? renderMapExpression(expression)
+    : `${expression.name}<${expression.params.map(renderTypeExpression).join(', ')}>`;
 };
 
 const renderUnionType = (expression: ExpUnionType): string => {
@@ -53,9 +59,11 @@ const renderTopLevelType = (name: string, schema: Schema): string => {
 };
 
 function render(root: Record<string, Schema>): string {
-  return Object.entries(root)
-    .map(([name, schema]) => renderTopLevelType(name, schema))
-    .join('\n');
+  return (
+    Object.entries(root)
+      .map(([name, schema]) => renderTopLevelType(name, schema))
+      .join('\n') + '\n'
+  );
 }
 
 export default render;
