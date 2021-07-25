@@ -1,7 +1,7 @@
 import fs from 'fs';
 import glob from 'glob';
 import path from 'path';
-import { generateTypes as parser } from '../dist/index';
+import { generateTypes as parser } from '../index';
 import { describe, it, expect, beforeEach } from '@jest/globals';
 
 const samplesPath = path.join(__dirname, '../samples/*.bolt');
