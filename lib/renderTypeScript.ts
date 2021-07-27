@@ -18,7 +18,7 @@ function convertBuiltin(builtin: string): string {
 }
 
 const renderMapExpression = (expression: ExpGenericType): string => {
-  return `{ [key: string]: ${renderTypeExpression(expression.params[1])}; }`;
+  return `Record<string, ${renderTypeExpression(expression.params[1])}>`;
 };
 
 const renderGenericTypeExpression = (expression: ExpGenericType): string => {
