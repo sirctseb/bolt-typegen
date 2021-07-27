@@ -41,7 +41,13 @@ const renderTypeExpression = (expression: ExpType): string => {
   return renderUnionType(expression);
 };
 
-const renderExtension = (schema: Schema): string => `(${renderTypeExpression(schema.derivedFrom)})`;
+const renderExtension = (schema: Schema): string => {
+  const parent = renderTypeExpression(schema.derivedFrom);
+  if (isUnionType(schema.derivedFrom)) {
+    return `(${parent})`;
+  }
+  return parent;
+};
 
 const renderParams = (schema: Schema): string =>
   schema.params && schema.params.length ? `<${schema.params.join(', ')}>` : '';
