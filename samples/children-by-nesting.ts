@@ -2,5 +2,5 @@ export interface Child {
   age: number;
 }
 export interface Parent {
-  children: { [key: string]: Child; };
+  children: Record<string, Child>;
 }

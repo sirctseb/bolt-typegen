@@ -1,0 +1,7 @@
+type ObjectType {
+  myField: String;
+}
+
+type UnionExtender extends Number | ObjectType {
+  validate() { true }
+}

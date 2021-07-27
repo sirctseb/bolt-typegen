@@ -1,14 +1,14 @@
-export type RoomInfo = Object & {
+export interface RoomInfo {
   name: NameString;
   creator: UserID;
-  members: { [key: string]: Member; };
+  members: Record<string, Member>;
 }
-export type Post = Object & {
+export interface Post {
   from: UserID;
   message: MessageString;
 }
 export type MessageString = string;
-export type Member = Object & {
+export interface Member  {
   nickname: NameString;
   isBanned: boolean;
 }

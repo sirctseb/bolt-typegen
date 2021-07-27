@@ -1,6 +1,6 @@
 export interface App {
-  users: { [key: string]: User; };
-  products: { [key: string]: Product; };
+  users: Record<string, User>;
+  products: Record<string, Product>;
 }
 export interface User {
   name: string;
