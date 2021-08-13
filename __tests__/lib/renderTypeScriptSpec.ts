@@ -70,7 +70,7 @@ function propertyLine(propName: string) {
   return renderTypeScript.propertyLine(propsByName[propName]);
 }
 
-describe('renderTypeScript', () => {
+describe.skip('renderTypeScript', () => {
   describe('interfaceOpen', () => {
     it('simple type with properties', () => {
       expect(interfaceOpen('SimpleType')).toEqual('interface SimpleType {');
