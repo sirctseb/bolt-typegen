@@ -77,10 +77,24 @@ const renderExtension = (schema: Schema): string => {
 const renderParams = (schema: Schema): string =>
   schema.params && schema.params.length ? `<${schema.params.join(', ')}>` : '';
 
+const isOptional = (expression: ExpType): expression is ExpUnionType => {
+  return isUnionType(expression) && expression.types.some((type) => isSimpleType(type) && type.name === 'Null');
+};
+
+const renderProperty = (name: string, definition: ExpType): string => {
+  if (isOptional(definition)) {
+    return `${name}?: ${renderTypeExpression({
+      ...definition,
+      types: definition.types.filter((type) => !isSimpleType(type) || type.name !== 'Null'),
+    })};`;
+  }
+  return `${name}: ${renderTypeExpression(definition)};`;
+};
+
 const renderProperties = (schema: Schema): string => {
   if (hasProperties(schema)) {
     return `${extendsNative(schema) ? ' & ' : ''}{\n  ${Object.entries(schema.properties)
-      .map(([name, definition]) => `${name}: ${renderTypeExpression(definition)};`)
+      .map(([name, definition]) => renderProperty(name, definition))
       .join('\n  ')}\n}`;
   } else {
     return ';';
