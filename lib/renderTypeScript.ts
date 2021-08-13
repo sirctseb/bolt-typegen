@@ -13,6 +13,8 @@ const BOLT_BUILTIN_MAPPING: Record<string, string> = {
   String: 'string',
 };
 
+const NATIVE_TYPES = ['Boolean', 'Number', 'String'];
+
 function convertBuiltin(builtin: string): string {
   return BOLT_BUILTIN_MAPPING[builtin] || builtin;
 }
@@ -42,11 +44,30 @@ const renderTypeExpression = (expression: ExpType): string => {
 };
 
 const renderExtension = (schema: Schema): string => {
-  const parent = renderTypeExpression(schema.derivedFrom);
-  if (isUnionType(schema.derivedFrom)) {
-    return `(${parent})`;
+  const nativeExtension = extendsNative(schema);
+  if (nativeExtension) {
+    if (isUnionType(schema.derivedFrom)) {
+      return `= (${renderTypeExpression(schema.derivedFrom)})`;
+    } else {
+      return `= ${renderTypeExpression(schema.derivedFrom)}`;
+    }
   }
-  return parent;
+
+  let parent;
+  if (isUnionType(schema.derivedFrom)) {
+    // we omit Object from the ancestor union when declaring an interface
+    const ancestors = schema.derivedFrom.types.filter((type) => !isSimpleType(type) || type.name !== 'Object');
+    // if Objects was the only ancestor, omit the extension entirely
+    if (ancestors.length === 0) {
+      return '';
+    }
+    return `extends ${ancestors.map(renderTypeExpression).join(' | ')}`;
+  } else if (isSimpleType(schema.derivedFrom) && schema.derivedFrom.name === 'Object') {
+    // if the type was only derived from Object, omit the extension entirely
+    return '';
+  } else {
+    return `extends ${renderTypeExpression(schema.derivedFrom)}`;
+  }
 };
 
 const renderParams = (schema: Schema): string =>
@@ -54,7 +75,7 @@ const renderParams = (schema: Schema): string =>
 
 const renderProperties = (schema: Schema): string => {
   if (schema.properties && Object.keys(schema.properties).length) {
-    return ` & {\n  ${Object.entries(schema.properties)
+    return `${extendsNative(schema) ? ' & ' : ''}{\n  ${Object.entries(schema.properties)
       .map(([name, definition]) => `${name}: ${renderTypeExpression(definition)};`)
       .join('\n  ')}\n}`;
   } else {
@@ -62,8 +83,16 @@ const renderProperties = (schema: Schema): string => {
   }
 };
 
+const extendsNative = (schema: Schema) =>
+  (isUnionType(schema.derivedFrom) &&
+    schema.derivedFrom.types.some((type) => isSimpleType(type) && NATIVE_TYPES.includes(type.name))) ||
+  (isSimpleType(schema.derivedFrom) && NATIVE_TYPES.includes(schema.derivedFrom.name));
+
 const renderTopLevelType = (name: string, schema: Schema): string => {
-  return `export type ${name}${renderParams(schema)} = ${renderExtension(schema)}${renderProperties(schema)}`;
+  const nativeExtension = extendsNative(schema);
+  return nativeExtension
+    ? `export type ${name}${renderParams(schema)} ${renderExtension(schema)}${renderProperties(schema)}`
+    : `export interface ${name}${renderParams(schema)} ${renderExtension(schema)}${renderProperties(schema)}`;
 };
 
 function render(root: Record<string, Schema>): string {
