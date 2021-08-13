@@ -1,3 +1,3 @@
-type UnionExtender = (number | Object) & {
+export type UnionExtender = (number | Object) & {
   myField?: string;
 }
