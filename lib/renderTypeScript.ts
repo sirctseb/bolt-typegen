@@ -47,6 +47,10 @@ const renderExtension = (schema: Schema): string => {
   const nativeExtension = extendsNative(schema);
   if (nativeExtension) {
     if (isUnionType(schema.derivedFrom)) {
+      // if a type does not declare any properties, we don't want the parentheses around the ancestors
+      if (!hasProperties(schema)) {
+        return `= ${renderTypeExpression(schema.derivedFrom)}`;
+      }
       return `= (${renderTypeExpression(schema.derivedFrom)})`;
     } else {
       return `= ${renderTypeExpression(schema.derivedFrom)}`;
@@ -74,13 +78,17 @@ const renderParams = (schema: Schema): string =>
   schema.params && schema.params.length ? `<${schema.params.join(', ')}>` : '';
 
 const renderProperties = (schema: Schema): string => {
-  if (schema.properties && Object.keys(schema.properties).length) {
+  if (hasProperties(schema)) {
     return `${extendsNative(schema) ? ' & ' : ''}{\n  ${Object.entries(schema.properties)
       .map(([name, definition]) => `${name}: ${renderTypeExpression(definition)};`)
       .join('\n  ')}\n}`;
   } else {
     return ';';
   }
+};
+
+const hasProperties = (schema: Schema): boolean => {
+  return schema.properties && Object.keys(schema.properties).length > 0;
 };
 
 const extendsNative = (schema: Schema) =>
