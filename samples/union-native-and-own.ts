@@ -1,3 +1,3 @@
 export type UnionExtender = (number | Object) & {
-  myField: String;
+  myField: string;
 }
