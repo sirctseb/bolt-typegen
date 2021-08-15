@@ -1,8 +1,9 @@
+import prettier from 'prettier';
 import fs from 'fs';
 import glob from 'glob';
 import path from 'path';
+import { describe, it, expect } from '@jest/globals';
 import { generateTypes as parser } from '../index';
-import { describe, it, expect, beforeEach } from '@jest/globals';
 
 const samplesPath = path.join(__dirname, '../samples/*.bolt');
 const samplesFiles = glob.sync(samplesPath);
@@ -18,8 +19,9 @@ function testSample(sample: any) {
   it(sample.name, () => {
     const boltString = fs.readFileSync(sample.boltFile).toString();
     const tsString = fs.readFileSync(sample.tsFile).toString();
-    // @ts-ignore
-    expect(parser(boltString)).toBe(tsString);
+    const parsed = parser(boltString);
+    const linted = prettier.format(parsed, { parser: 'typescript' });
+    expect(linted).toBe(tsString);
   });
 }
 

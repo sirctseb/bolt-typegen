@@ -4,5 +4,5 @@ export interface Product {
 }
 export type Serialized<T> = T & {
   counter: Counter;
-}
+};
 export type Counter = number;
