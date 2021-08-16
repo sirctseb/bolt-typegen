@@ -1,3 +1,4 @@
+import ts from 'typescript';
 import { ExpSimpleType, ExpGenericType, ExpType, ExpUnionType, Schema } from 'firebase-bolt/lib/ast';
 export const isSimpleType = (type: ExpType): type is ExpSimpleType => type.type === 'type';
 export const isGenericType = (type: ExpType): type is ExpGenericType => type.type === 'generic';
@@ -11,6 +12,12 @@ const BOLT_BUILTIN_MAPPING: Record<string, string> = {
   Null: 'null',
   Object: 'Object',
   String: 'string',
+};
+
+const BOLT_BUILTIN_TO_NATIVE: Record<string, ts.KeywordTypeSyntaxKind> = {
+  Boolean: ts.SyntaxKind.BooleanKeyword,
+  Number: ts.SyntaxKind.NumberKeyword,
+  String: ts.SyntaxKind.StringKeyword,
 };
 
 const NATIVE_TYPES = ['Boolean', 'Number', 'String'];
@@ -117,12 +124,116 @@ const renderTopLevelType = (name: string, schema: Schema): string => {
     : `export interface ${name}${renderParams(schema)} ${renderExtension(schema)}${renderProperties(schema)}`;
 };
 
-function render(root: Record<string, Schema>): string {
+const renderOld = (root: Record<string, Schema>): string => {
   return (
     Object.entries(root)
       .map(([name, schema]) => renderTopLevelType(name, schema))
       .join('\n') + '\n'
   );
-}
+};
+
+const factory = ts.factory;
+
+const translateSimpleTypeExpression = (
+  builtin: string
+): ts.KeywordTypeNode<ts.KeywordTypeSyntaxKind> | ts.TypeReferenceNode => {
+  if (Object.keys(BOLT_BUILTIN_TO_NATIVE).includes(builtin)) {
+    return factory.createKeywordTypeNode(BOLT_BUILTIN_TO_NATIVE[builtin]);
+  }
+  return factory.createTypeReferenceNode(factory.createIdentifier(builtin), undefined);
+};
+
+const translateMapExpression = (expression: ExpGenericType): ts.TypeReferenceNode => {
+  return factory.createTypeReferenceNode(factory.createIdentifier('Record'), [
+    factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
+    translateTypeExpression(expression.params[1]),
+  ]);
+};
+
+const translateGenericTypeExpression = (expression: ExpGenericType): ts.TypeReferenceNode => {
+  return expression.name === 'Map'
+    ? translateMapExpression(expression)
+    : factory.createTypeReferenceNode(
+        factory.createIdentifier(expression.name),
+        expression.params.map(translateTypeExpression)
+      );
+};
+
+const translateUnionType = (expression: ExpUnionType): ts.UnionTypeNode => {
+  return factory.createUnionTypeNode(expression.types.map(translateTypeExpression));
+};
+
+const translateTypeExpression = (expression: ExpType): ts.TypeNode => {
+  if (isSimpleType(expression)) {
+    return translateSimpleTypeExpression(expression.name);
+  }
+  if (isGenericType(expression)) {
+    return translateGenericTypeExpression(expression);
+  }
+  return translateUnionType(expression);
+};
+
+const translatePropertyDeclaration = (name: string, definition: ExpType) => {
+  return factory.createPropertySignature(
+    /* modifiers */ undefined,
+    name,
+    /* questionToken */ undefined,
+    translateTypeExpression(definition)
+  );
+};
+
+const translateTypeDeclarationToInterface = (name: string, schema: Schema): ts.InterfaceDeclaration => {
+  return factory.createInterfaceDeclaration(
+    /* decorators */ undefined,
+    /* modifiers */ [factory.createToken(ts.SyntaxKind.ExportKeyword)],
+    name,
+    /* type parameters */ undefined,
+    /* heritage clause */ undefined,
+    Object.entries(schema.properties).map(([name, definition]) => translatePropertyDeclaration(name, definition))
+  );
+};
+const translateTypeDeclarationToTypeAlias = (name: string, schema: Schema): ts.TypeAliasDeclaration => {
+  let typeDefinition: ts.TypeNode;
+  if (hasProperties(schema)) {
+    typeDefinition = factory.createIntersectionTypeNode([
+      translateTypeExpression(schema.derivedFrom),
+      factory.createTypeLiteralNode(
+        Object.entries(schema.properties).map(([name, definition]) => translatePropertyDeclaration(name, definition))
+      ),
+    ]);
+  } else {
+    typeDefinition = translateTypeExpression(schema.derivedFrom);
+  }
+  return factory.createTypeAliasDeclaration(
+    undefined /* decorators */,
+    [factory.createToken(ts.SyntaxKind.ExportKeyword)],
+    name,
+    undefined,
+    typeDefinition
+  );
+};
+
+const translateTopLevelTypeDeclaration = (
+  name: string,
+  schema: Schema
+): ts.InterfaceDeclaration | ts.TypeAliasDeclaration => {
+  const nativeExtension = extendsNative(schema);
+  if (nativeExtension) {
+    return translateTypeDeclarationToTypeAlias(name, schema);
+  }
+  return translateTypeDeclarationToInterface(name, schema);
+};
+
+const render = (root: Record<string, Schema>): string => {
+  const printer = ts.createPrinter();
+  const declarations = factory.createNodeArray(
+    Object.entries(root).map(([name, schema]) => translateTopLevelTypeDeclaration(name, schema))
+  );
+  return printer.printList(
+    ts.ListFormat.SourceFileStatements,
+    declarations,
+    ts.createSourceFile('test.ts', '', ts.ScriptTarget.Latest, undefined, ts.ScriptKind.TS)
+  );
+};
 
 export default render;
