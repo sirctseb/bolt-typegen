@@ -1,0 +1,7 @@
+type BaseObject {
+  child: String;
+}
+
+type DerivedObject extends BaseObject {
+  otherChild: Number;
+}
