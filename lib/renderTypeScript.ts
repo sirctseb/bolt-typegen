@@ -174,11 +174,18 @@ const translateTypeExpression = (expression: ExpType): ts.TypeNode => {
 };
 
 const translatePropertyDeclaration = (name: string, definition: ExpType) => {
+  let modifiedDefinition = definition;
+  if (isOptional(definition)) {
+    modifiedDefinition = {
+      ...definition,
+      types: definition.types.filter((type) => !isSimpleType(type) || type.name !== 'Null'),
+    };
+  }
   return factory.createPropertySignature(
     /* modifiers */ undefined,
     name,
-    /* questionToken */ undefined,
-    translateTypeExpression(definition)
+    isOptional(definition) ? factory.createToken(ts.SyntaxKind.QuestionToken) : undefined,
+    translateTypeExpression(modifiedDefinition)
   );
 };
 
