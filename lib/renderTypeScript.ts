@@ -189,13 +189,43 @@ const translatePropertyDeclaration = (name: string, definition: ExpType) => {
   );
 };
 
+const makeExpressionWithTypeArgumentsArrayFromTypeNode = (expression: ExpType): ts.ExpressionWithTypeArguments[] => {
+  if (isSimpleType(expression)) {
+    if (expression.name !== 'Object') {
+      return [factory.createExpressionWithTypeArguments(factory.createIdentifier(expression.name), [])];
+    }
+    return [];
+  }
+  if (isGenericType(expression)) {
+    return [
+      factory.createExpressionWithTypeArguments(
+        factory.createIdentifier(expression.name),
+        expression.types.map(translateTypeExpression)
+      ),
+    ];
+  }
+  return expression.types.reduce<ts.ExpressionWithTypeArguments[]>(
+    (result, current) => [...result, ...makeExpressionWithTypeArgumentsArrayFromTypeNode(current)],
+    []
+  );
+};
+
 const translateTypeDeclarationToInterface = (name: string, schema: Schema): ts.InterfaceDeclaration => {
+  const ancestors = makeExpressionWithTypeArgumentsArrayFromTypeNode(schema.derivedFrom);
+  const hasAncestors = ancestors.length > 0;
   return factory.createInterfaceDeclaration(
     /* decorators */ undefined,
     /* modifiers */ [factory.createToken(ts.SyntaxKind.ExportKeyword)],
     name,
     /* type parameters */ undefined,
-    /* heritage clause */ undefined,
+    /* heritage clause */ hasAncestors
+      ? [
+          factory.createHeritageClause(
+            ts.SyntaxKind.ExtendsKeyword,
+            makeExpressionWithTypeArgumentsArrayFromTypeNode(schema.derivedFrom)
+          ),
+        ]
+      : undefined,
     Object.entries(schema.properties).map(([name, definition]) => translatePropertyDeclaration(name, definition))
   );
 };
