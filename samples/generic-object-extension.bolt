@@ -1,0 +1,6 @@
+type BaseObject<T> {
+  child: String;
+}
+type DerivedObject<T> extends BaseObject<T> {
+  otherChild: Number;
+}
