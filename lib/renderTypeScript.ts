@@ -20,10 +20,10 @@ const hasProperties = (schema: Schema): boolean => {
   return schema.properties && Object.keys(schema.properties).length > 0;
 };
 
+const isNative = (expression: ExpType) => isSimpleType(expression) && NATIVE_TYPES.includes(expression.name);
+
 const extendsNative = (schema: Schema) =>
-  (isUnionType(schema.derivedFrom) &&
-    schema.derivedFrom.types.some((type) => isSimpleType(type) && NATIVE_TYPES.includes(type.name))) ||
-  (isSimpleType(schema.derivedFrom) && NATIVE_TYPES.includes(schema.derivedFrom.name));
+  (isUnionType(schema.derivedFrom) && schema.derivedFrom.types.some(isNative)) || isNative(schema.derivedFrom);
 
 const factory = ts.factory;
 
