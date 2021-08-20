@@ -129,7 +129,7 @@ class AstTranslator {
       return [
         factory.createExpressionWithTypeArguments(
           factory.createIdentifier(expression.name),
-          expression.types.map(this.translateTypeExpression.bind(this))
+          expression.params.map(this.translateTypeExpression.bind(this))
         ),
       ];
     }
@@ -146,7 +146,14 @@ class AstTranslator {
       /* decorators */ undefined,
       /* modifiers */ [factory.createToken(ts.SyntaxKind.ExportKeyword)],
       name,
-      /* type parameters */ undefined,
+      /* type parameters */ schema.params &&
+        schema.params.map((param) =>
+          factory.createTypeParameterDeclaration(
+            factory.createIdentifier(param),
+            /* constraint */ undefined,
+            /* default type */ undefined
+          )
+        ),
       /* heritage clause */ hasAncestors
         ? [
             factory.createHeritageClause(
