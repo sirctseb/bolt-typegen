@@ -102,6 +102,47 @@ class AstTranslator {
     return this.translateUnionType(expression);
   }
 
+  private isBoltMap(expression: ExpType): boolean {
+    // both Map<Anything, AnythingElse> and Anything[] are parsed to a Map
+    return isGenericType(expression) && expression.name === 'Map';
+  }
+
+  // bolt does not allow a type that extends only native types and declares properties
+  // so we don't have to worry about detecting that cant-assign-anything case and return true here
+  // therefore, assumptions:
+  // 1. if the schema has properties, it can be an object and we return true if every field can take null
+  // 2. if the schema has no properties, then we can be null if derived is valueCanBeNull
+  private isUserDefinedNullableType(expression: ExpType): boolean {
+    if ((isSimpleType(expression) || isGenericType(expression)) && this.manifest[expression.name]) {
+      const schema = this.manifest[expression.name];
+      const propertyValues = Object.values(schema.properties);
+      return propertyValues.length > 0
+        ? propertyValues.every(this.valueCanBeNull.bind(this))
+        : this.valueCanBeNull(schema.derivedFrom);
+    }
+    return false;
+  }
+
+  // returns true if a property typed with type expression can ever have a null value
+  // there are no actual null values in firebase, the property is just not there, so in typescript
+  // we have to mark the field as optional. this can happen if the expression is a union including Null
+  // myField: String | Null; => myField?: string;
+  // it can also happen that the expression is or is a union that includes a type that does not have any
+  // required keys. E.g. Map<String, Boolean> or a type with declared properties, all of which are
+  // unions including Null
+  private valueCanBeNull(expression: ExpType): boolean {
+    // the expression is a union containing Null
+    return (
+      this.isOptional(expression) ||
+      // the expression is a Bolt syntax convenience for a map
+      this.isBoltMap(expression) ||
+      // the expression is a user-defined type that does not have any required values
+      this.isUserDefinedNullableType(expression) ||
+      // the expression is a union that includes any of the above
+      (isUnionType(expression) && expression.types.some(this.valueCanBeNull.bind(this)))
+    );
+  }
+
   private translatePropertyDeclaration(name: string, definition: ExpType): ts.PropertySignature {
     let modifiedDefinition = definition;
     if (this.isOptional(definition)) {
@@ -110,10 +151,12 @@ class AstTranslator {
         types: definition.types.filter((type) => !isSimpleType(type) || type.name !== 'Null'),
       };
     }
+    const questionMark = this.valueCanBeNull(definition) ? factory.createToken(ts.SyntaxKind.QuestionToken) : undefined;
+
     return factory.createPropertySignature(
       /* modifiers */ undefined,
       name,
-      this.isOptional(definition) ? factory.createToken(ts.SyntaxKind.QuestionToken) : undefined,
+      questionMark,
       this.translateTypeExpression(modifiedDefinition)
     );
   }

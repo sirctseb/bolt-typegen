@@ -1,7 +1,7 @@
 export interface RoomInfo {
   name: NameString;
   creator: UserID;
-  members: Record<string, Member>;
+  members?: Record<string, Member>;
 }
 export interface Post {
   from: UserID;

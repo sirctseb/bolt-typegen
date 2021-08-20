@@ -1,3 +1,3 @@
 export interface MapToUnion {
-  field: Record<string, string | number>;
+  field?: Record<string, string | number>;
 }
