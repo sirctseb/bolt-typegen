@@ -35,9 +35,30 @@ class AstTranslator {
     return isSimpleType(expression) && NATIVE_TYPES.includes(expression.name);
   }
 
-  private extendsNative(schema: Schema) {
+  private isNameOfSchemaDerivedFromNative(name: string): boolean {
+    if (!this.manifest[name]) {
+      return false;
+    }
+    return this.isNativeOrDescendant(this.manifest[name].derivedFrom);
+  }
+
+  // returns true if a type derived from this expression can take a native value, that is, this type:
+  // 1. is a simple type that is a native type or
+  // 2. is a simple type defined by the user (exists in the manifest), which can take a native value or
+  // 3. is a union type containing 1 or 2
+  private isNativeOrDescendant(expression: ExpType): boolean {
     return (
-      (isUnionType(schema.derivedFrom) && schema.derivedFrom.types.some(this.isNative)) ||
+      // 1.
+      this.isNative(expression) ||
+      // 2.
+      (isSimpleType(expression) && this.isNameOfSchemaDerivedFromNative(expression.name)) ||
+      (isUnionType(expression) && expression.types.some(this.isNativeOrDescendant.bind(this)))
+    );
+  }
+
+  private hasNativeAncestor(schema: Schema): boolean {
+    return (
+      (isUnionType(schema.derivedFrom) && schema.derivedFrom.types.some(this.isNative.bind(this))) ||
       this.isNative(schema.derivedFrom)
     );
   }
@@ -165,8 +186,8 @@ class AstTranslator {
     name: string,
     schema: Schema
   ): ts.InterfaceDeclaration | ts.TypeAliasDeclaration {
-    const nativeExtension = this.extendsNative(schema);
-    if (nativeExtension) {
+    const canBeNative = this.isNativeOrDescendant(schema.derivedFrom);
+    if (canBeNative) {
       return this.translateTypeDeclarationToTypeAlias(name, schema);
     }
     return this.translateTypeDeclarationToInterface(name, schema);
