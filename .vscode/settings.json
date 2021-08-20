@@ -3,6 +3,7 @@
   "eslint.format.enable": true,
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true,
     "source.fixAll.stylelint": true,
   },
   "editor.tabSize": 2,
