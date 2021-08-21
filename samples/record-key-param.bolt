@@ -1,0 +1,5 @@
+type StringAlias extends String {}
+
+type RecordWithKeyHost {
+  child: Map<StringAlias, Boolean>;
+}

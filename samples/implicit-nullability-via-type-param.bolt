@@ -1,0 +1,15 @@
+type TemplateType<T> {
+  child: T | String;
+}
+
+type StringHost {
+  keepAlive: String;
+  child: TemplateType<String>;
+}
+
+// child is optional here, and is statically known.
+// but this is gonna be a tough one
+type NullHost {
+  keepAlive: String;
+  child: TemplateType<Null>;
+}

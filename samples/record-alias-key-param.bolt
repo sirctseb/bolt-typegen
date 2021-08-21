@@ -1,0 +1,1 @@
+type RecordAlias<K, V> extends Map<K, V> {}
