@@ -1,1 +1,4 @@
 type RecordAlias<K, V> extends Map<K, V> {}
+type RecordAliasStringKey<V> extends Map<String, V> {}
+type StringAlias extends String {}
+type RecordAliasStringAliasKey<V> extends Map<StringAlias, V> {}
