@@ -35,34 +35,6 @@ class AstTranslator {
     return isSimpleType(expression) && NATIVE_TYPES.includes(expression.name);
   }
 
-  private isNameOfSchemaDerivedFromNative(name: string): boolean {
-    if (!this.manifest[name]) {
-      return false;
-    }
-    return this.isNativeOrDescendant(this.manifest[name].derivedFrom);
-  }
-
-  // returns true if a type derived from this expression can take a native value, that is, this type:
-  // 1. is a simple type that is a native type or
-  // 2. is a simple type defined by the user (exists in the manifest), which can take a native value or
-  // 3. is a union type containing 1 or 2
-  private isNativeOrDescendant(expression: ExpType): boolean {
-    return (
-      // 1.
-      this.isNative(expression) ||
-      // 2.
-      (isSimpleType(expression) && this.isNameOfSchemaDerivedFromNative(expression.name)) ||
-      (isUnionType(expression) && expression.types.some(this.isNativeOrDescendant.bind(this)))
-    );
-  }
-
-  private hasNativeAncestor(schema: Schema): boolean {
-    return (
-      (isUnionType(schema.derivedFrom) && schema.derivedFrom.types.some(this.isNative.bind(this))) ||
-      this.isNative(schema.derivedFrom)
-    );
-  }
-
   private translateSimpleTypeExpression(
     builtin: string
   ): ts.KeywordTypeNode<ts.KeywordTypeSyntaxKind> | ts.TypeReferenceNode {
@@ -227,17 +199,79 @@ class AstTranslator {
       undefined /* decorators */,
       [factory.createToken(ts.SyntaxKind.ExportKeyword)],
       name,
-      undefined,
+      /* type parameters */ schema.params &&
+        schema.params.map((param) =>
+          factory.createTypeParameterDeclaration(
+            factory.createIdentifier(param),
+            /* constraint */ undefined,
+            /* default type */ undefined
+          )
+        ),
       typeDefinition
     );
+  }
+
+  // replace any simple expression type with a name that is a key in specializations with the value there
+  private specializeExpression(expression: ExpType, specializations: Record<string, ExpType>): ExpType {
+    if (isUnionType(expression)) {
+      return {
+        ...expression,
+        types: expression.types.map((type) => this.specializeExpression(type, specializations)),
+      };
+    }
+    if (isGenericType(expression)) {
+      // TODO i don't think a type parameter can appear as the name of a generic type??
+      return {
+        ...expression,
+        params: expression.params.map((param) => this.specializeExpression(param, specializations)),
+      };
+    }
+    return specializations[expression.name] || expression;
+  }
+
+  private isExtendableSpecialization(schema: Schema, typeArguments: ExpType[]): boolean {
+    if (typeArguments.length !== schema.params?.length) {
+      throw new Error(
+        'Error determining if a specialization is concrete, type arguments provided is not the same length as schema params'
+      );
+    }
+    const specializations: Record<string, ExpType> = {};
+    schema.params?.forEach((param, index) => {
+      specializations[param] = typeArguments[index];
+    });
+
+    return this.canBeExtended(this.specializeExpression(schema.derivedFrom, specializations));
+  }
+
+  private canBeExtended(expression: ExpType): boolean {
+    if (isUnionType(expression)) {
+      return expression.types.every(this.canBeExtended.bind(this));
+    }
+    if (isGenericType(expression)) {
+      if (expression.name === 'Map') {
+        // TODO have to check that we are providing a concrete type param for the key
+        return true;
+      }
+      return (
+        this.manifest[expression.name] &&
+        this.isExtendableSpecialization(this.manifest[expression.name], expression.params)
+      );
+    }
+    if (expression.name === 'Object') {
+      return true;
+    }
+    if (this.isNative(expression)) {
+      return false;
+    }
+    return this.manifest[expression.name] && this.canBeExtended(this.manifest[expression.name].derivedFrom);
   }
 
   private translateTopLevelTypeDeclaration(
     name: string,
     schema: Schema
   ): ts.InterfaceDeclaration | ts.TypeAliasDeclaration {
-    const canBeNative = this.isNativeOrDescendant(schema.derivedFrom);
-    if (canBeNative) {
+    const extendable = this.canBeExtended(schema.derivedFrom);
+    if (!extendable) {
       return this.translateTypeDeclarationToTypeAlias(name, schema);
     }
     return this.translateTypeDeclarationToInterface(name, schema);
