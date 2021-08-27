@@ -1,0 +1,15 @@
+type NotStaticallyKnown<T> extends T {
+  child: String;
+}
+
+type NotStaticallyKnownSubType<T> extends NotStaticallyKnown<T> {
+  another: String;
+}
+
+type ConcreteType {
+  ok: String;
+}
+
+type DirectDescdendant extends NotStaticallyKnown<ConcreteType> {}
+
+type SecondDescendant extends NotStaticallyKnownSubType<ConcreteType> {}
