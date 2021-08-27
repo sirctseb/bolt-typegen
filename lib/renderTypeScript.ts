@@ -46,7 +46,7 @@ class AstTranslator {
 
   private translateMapExpression(expression: ExpGenericType): ts.TypeReferenceNode {
     return factory.createTypeReferenceNode(factory.createIdentifier('Record'), [
-      factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
+      this.translateTypeExpression(expression.params[0]),
       this.translateTypeExpression(expression.params[1]),
     ]);
   }

@@ -1,6 +1,6 @@
 export interface App {
-  users?: Record<string, User>;
-  products?: Record<string, Product>;
+  users?: Record<PushID, User>;
+  products?: Record<ProductID, Product>;
 }
 export interface User {
   name: string;
