@@ -154,6 +154,19 @@ class AstTranslator {
     );
   }
 
+  private translateTypeParameters(schema: Schema): ts.TypeParameterDeclaration[] | undefined {
+    return (
+      schema.params &&
+      schema.params.map((param) =>
+        factory.createTypeParameterDeclaration(
+          factory.createIdentifier(param),
+          /* constraint */ undefined,
+          /* default type */ undefined
+        )
+      )
+    );
+  }
+
   private translateTypeDeclarationToInterface(name: string, schema: Schema): ts.InterfaceDeclaration {
     const ancestors = this.makeExpressionWithTypeArgumentsArrayFromTypeNode(schema.derivedFrom);
     const hasAncestors = ancestors.length > 0;
@@ -161,14 +174,7 @@ class AstTranslator {
       /* decorators */ undefined,
       /* modifiers */ [factory.createToken(ts.SyntaxKind.ExportKeyword)],
       name,
-      /* type parameters */ schema.params &&
-        schema.params.map((param) =>
-          factory.createTypeParameterDeclaration(
-            factory.createIdentifier(param),
-            /* constraint */ undefined,
-            /* default type */ undefined
-          )
-        ),
+      /* type parameters */ this.translateTypeParameters(schema),
       /* heritage clause */ hasAncestors
         ? [
             factory.createHeritageClause(
@@ -196,17 +202,10 @@ class AstTranslator {
       typeDefinition = this.translateTypeExpression(schema.derivedFrom);
     }
     return factory.createTypeAliasDeclaration(
-      undefined /* decorators */,
-      [factory.createToken(ts.SyntaxKind.ExportKeyword)],
+      /* decorators */ undefined,
+      /* modifiers */ [factory.createToken(ts.SyntaxKind.ExportKeyword)],
       name,
-      /* type parameters */ schema.params &&
-        schema.params.map((param) =>
-          factory.createTypeParameterDeclaration(
-            factory.createIdentifier(param),
-            /* constraint */ undefined,
-            /* default type */ undefined
-          )
-        ),
+      /* type parameters */ this.translateTypeParameters(schema),
       typeDefinition
     );
   }
