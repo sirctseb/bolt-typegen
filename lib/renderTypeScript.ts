@@ -5,12 +5,13 @@ export const isGenericType = (type: ExpType): type is ExpGenericType => type.typ
 export const isUnionType = (type: ExpType): type is ExpUnionType => type.type === 'union';
 
 const BOLT_BUILTIN_TO_NATIVE: Record<string, ts.KeywordTypeSyntaxKind> = {
+  Any: ts.SyntaxKind.AnyKeyword,
   Boolean: ts.SyntaxKind.BooleanKeyword,
   Number: ts.SyntaxKind.NumberKeyword,
   String: ts.SyntaxKind.StringKeyword,
 };
 
-const NATIVE_TYPES = ['Boolean', 'Number', 'String'];
+const NATIVE_TYPES = ['Any', 'Boolean', 'Number', 'String'];
 
 const factory = ts.factory;
 
