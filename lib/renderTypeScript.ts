@@ -154,13 +154,72 @@ class AstTranslator {
     );
   }
 
+  private isMapWithGivenKeyTypeArg(expression: ExpGenericType, param: string) {
+    return (
+      expression.name === 'Map' &&
+      expression.params.length > 0 &&
+      isSimpleType(expression.params[0]) &&
+      expression.params[0].name === param
+    );
+  }
+
+  // TODO what about MyType<A> extends MyOtherType<Something<A>, String, String> {}
+  // i don't even know how to think about that. what are we checking for then?
+  // that Something<X> resolves to X and B is passed as Map key arg? i guess so
+  // but what is that "resolves" condition really?
+  private isGenericTypeWithParameterUsedInRecordKey(type: ExpGenericType, param: string) {
+    if (this.isMapWithGivenKeyTypeArg(type, param)) {
+      return true;
+    }
+    // if it a user-defined type and we pass in the param we took, recurse to see if it aliases Map
+    // with an arg we passed
+    // MyType<A> extends MyOtherType<A, String, String> {}
+    // MyOtherType<B, C, D> extends Map<B, Boolean> {}
+    if (this.manifest[type.name]) {
+      return type.params.some((passedParam, index) => {
+        if (isSimpleType(passedParam) && passedParam.name === param) {
+          const parentParams = this.manifest[type.name].params;
+          if (parentParams) {
+            return this.typeParameterUsedInRecordKey(parentParams[index], this.manifest[type.name]);
+          }
+        }
+      });
+    }
+    return false;
+  }
+
+  // e.g. type A<K> extends Map<K, String> {}
+  // in typescript, we have to constrain a type param if it is passed as the key type arg
+  // to a Record
+  private typeParameterUsedInRecordKey(param: string, schema: Schema): boolean {
+    const parent = schema.derivedFrom;
+    if (isGenericType(parent)) {
+      return this.isGenericTypeWithParameterUsedInRecordKey(parent, param);
+    }
+
+    if (isUnionType(parent)) {
+      return parent.types.some((type) => {
+        return (
+          isGenericType(type) && this.manifest[type.name] && this.isGenericTypeWithParameterUsedInRecordKey(type, param)
+        );
+      });
+    }
+    return false;
+  }
+
   private translateTypeParameters(schema: Schema): ts.TypeParameterDeclaration[] | undefined {
     return (
       schema.params &&
       schema.params.map((param) =>
         factory.createTypeParameterDeclaration(
-          factory.createIdentifier(param),
-          /* constraint */ undefined,
+          /* name */ factory.createIdentifier(param),
+          /* constraint */ this.typeParameterUsedInRecordKey(param, schema)
+            ? factory.createUnionTypeNode([
+                factory.createKeywordTypeNode(ts.SyntaxKind.SymbolKeyword),
+                factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
+                factory.createKeywordTypeNode(ts.SyntaxKind.NumberKeyword),
+              ])
+            : undefined,
           /* default type */ undefined
         )
       )
@@ -248,8 +307,10 @@ class AstTranslator {
     }
     if (isGenericType(expression)) {
       if (expression.name === 'Map') {
-        // TODO have to check that we are providing a concrete type param for the key
-        return true;
+        // there are cases when Map extensisons can translate to
+        // interfaces but the conditions are not exactly clear nor is
+        // how we could implement the detection of those conditions.
+        return false;
       }
       return (
         this.manifest[expression.name] &&

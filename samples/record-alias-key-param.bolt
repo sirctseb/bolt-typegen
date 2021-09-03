@@ -2,3 +2,8 @@ type RecordAlias<K, V> extends Map<K, V> {}
 type RecordAliasStringKey<V> extends Map<String, V> {}
 type StringAlias extends String {}
 type RecordAliasStringAliasKey<V> extends Map<StringAlias, V> {}
+type WithChildren<V> extends Map<String, V> {
+  child: String;
+}
+type RecordAliasDescendant<K, V> extends RecordAlias<K, V> {}
+type RecordAliasOrStringDescendant<K, V> extends String | RecordAlias<K, V> {}
