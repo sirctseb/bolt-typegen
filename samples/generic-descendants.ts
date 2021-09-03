@@ -8,4 +8,5 @@ export interface ConcreteType {
   ok: string;
 }
 export interface DirectDescdendant extends NotStaticallyKnown<ConcreteType> {}
-export interface SecondDescendant extends NotStaticallyKnownSubType<ConcreteType> {}
+export interface SecondDescendant
+  extends NotStaticallyKnownSubType<ConcreteType> {}
