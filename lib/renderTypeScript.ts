@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { ExpSimpleType, ExpGenericType, ExpType, ExpUnionType, Schema } from 'firebase-bolt/lib/ast';
+import { ExpSimpleType, ExpGenericType, ExpType, ExpUnionType, Schema, TypeParams } from 'firebase-bolt/lib/ast';
 export const isSimpleType = (type: ExpType): type is ExpSimpleType => type.type === 'type';
 export const isGenericType = (type: ExpType): type is ExpGenericType => type.type === 'generic';
 export const isUnionType = (type: ExpType): type is ExpUnionType => type.type === 'union';
@@ -80,6 +80,23 @@ class AstTranslator {
     return isGenericType(expression) && expression.name === 'Map';
   }
 
+  private specializeSchema(schema: Schema, specializations: Record<string, ExpType>): Schema {
+    // specialize properties
+    const properties: TypeParams = {};
+    Object.entries(schema.properties).forEach(([name, expression]) => {
+      properties[name] = this.specializeExpression(expression, specializations);
+    });
+
+    // specialize parent
+    const derivedFrom = this.specializeExpression(schema.derivedFrom, specializations);
+
+    return {
+      ...schema,
+      properties,
+      derivedFrom,
+    };
+  }
+
   // bolt does not allow a type that extends only native types and declares properties
   // so we don't have to worry about detecting that cant-assign-anything case and return true here
   // therefore, assumptions:
@@ -87,7 +104,10 @@ class AstTranslator {
   // 2. if the schema has no properties, then we can be null if derived is valueCanBeNull
   private isUserDefinedNullableType(expression: ExpType): boolean {
     if ((isSimpleType(expression) || isGenericType(expression)) && this.manifest[expression.name]) {
-      const schema = this.manifest[expression.name];
+      let schema = this.manifest[expression.name];
+      if (isGenericType(expression)) {
+        schema = this.specializeSchema(schema, this.makeSpecializationParams(schema, expression.params));
+      }
       const propertyValues = Object.values(schema.properties);
       return propertyValues.length > 0
         ? propertyValues.every(this.valueCanBeNull.bind(this))
@@ -288,7 +308,7 @@ class AstTranslator {
     return specializations[expression.name] || expression;
   }
 
-  private isExtendableSpecialization(schema: Schema, typeArguments: ExpType[]): boolean {
+  private makeSpecializationParams(schema: Schema, typeArguments: ExpType[]): Record<string, ExpType> {
     if (typeArguments.length !== schema.params?.length) {
       throw new Error(
         'Error determining if a specialization is concrete, type arguments provided is not the same length as schema params'
@@ -299,7 +319,13 @@ class AstTranslator {
       specializations[param] = typeArguments[index];
     });
 
-    return this.canBeExtended(this.specializeExpression(schema.derivedFrom, specializations));
+    return specializations;
+  }
+
+  private isExtendableSpecialization(schema: Schema, typeArguments: ExpType[]): boolean {
+    const specializations = this.makeSpecializationParams(schema, typeArguments);
+    const specialized = this.specializeExpression(schema.derivedFrom, specializations);
+    return this.canBeExtended(specialized);
   }
 
   private canBeExtended(expression: ExpType): boolean {
