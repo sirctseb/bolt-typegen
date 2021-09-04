@@ -4,14 +4,15 @@ export const isSimpleType = (type: ExpType): type is ExpSimpleType => type.type 
 export const isGenericType = (type: ExpType): type is ExpGenericType => type.type === 'generic';
 export const isUnionType = (type: ExpType): type is ExpUnionType => type.type === 'union';
 
-const BOLT_BUILTIN_TO_NATIVE: Record<string, ts.KeywordTypeSyntaxKind> = {
+const BOLT_BUILTIN_TO_NATIVE: Record<string, ts.KeywordTypeSyntaxKind | ts.SyntaxKind.NullKeyword> = {
   Any: ts.SyntaxKind.AnyKeyword,
   Boolean: ts.SyntaxKind.BooleanKeyword,
   Number: ts.SyntaxKind.NumberKeyword,
   String: ts.SyntaxKind.StringKeyword,
+  Null: ts.SyntaxKind.NullKeyword,
 };
 
-const NATIVE_TYPES = ['Any', 'Boolean', 'Number', 'String'];
+const NATIVE_TYPES = ['Any', 'Boolean', 'Number', 'String', 'Null'];
 
 const factory = ts.factory;
 
@@ -38,9 +39,14 @@ class AstTranslator {
 
   private translateSimpleTypeExpression(
     builtin: string
-  ): ts.KeywordTypeNode<ts.KeywordTypeSyntaxKind> | ts.TypeReferenceNode {
+  ): ts.KeywordTypeNode<ts.KeywordTypeSyntaxKind> | ts.LiteralTypeNode | ts.TypeReferenceNode {
     if (Object.keys(BOLT_BUILTIN_TO_NATIVE).includes(builtin)) {
-      return factory.createKeywordTypeNode(BOLT_BUILTIN_TO_NATIVE[builtin]);
+      const native = BOLT_BUILTIN_TO_NATIVE[builtin];
+      if (native === ts.SyntaxKind.NullKeyword) {
+        return factory.createLiteralTypeNode(factory.createNull());
+      } else {
+        return factory.createKeywordTypeNode(native);
+      }
     }
     return factory.createTypeReferenceNode(factory.createIdentifier(builtin), undefined);
   }
