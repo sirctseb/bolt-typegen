@@ -2,6 +2,9 @@
   "name": "bolt-typegen",
   "version": "1.0.0",
   "description": "Generate TypeScript types from bolt security rules",
+  "bin": {
+    "bolt-typegen": "dist/cli.js"
+  },
   "keywords": [
     "firebase",
     "bolt",
