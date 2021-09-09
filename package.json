@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/sirctseb/bolt-typegen#readme",
   "dependencies": {
+    "commander": "^8.1.0",
     "firebase-bolt": "^0.8.0"
   },
   "devDependencies": {
