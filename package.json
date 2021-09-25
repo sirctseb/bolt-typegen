@@ -1,6 +1,6 @@
 {
   "name": "bolt-typegen",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Generate TypeScript types from bolt security rules",
   "bin": {
     "bolt-typegen": "dist/cli.js"
@@ -14,7 +14,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "jest --colors --env=jest-environment-node",
-    "build": "tsc --project tsconfig.json"
+    "build": "tsc --project tsconfig.json",
+    "prepare": "yarn build"
   },
   "repository": {
     "type": "git",
