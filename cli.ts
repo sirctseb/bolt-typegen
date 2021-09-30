@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { program } from 'commander';
 import fs from 'fs';
 program.version('1.0.0');
