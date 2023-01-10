@@ -2,7 +2,6 @@ module.exports = {
   root: true,
   env: {
     browser: true,
-    mocha: true,
   },
   settings: {
     react: {
@@ -17,9 +16,6 @@ module.exports = {
   },
   parser: '@typescript-eslint/parser',
   parserOptions: {
-    ecmaFeatures: {
-      jsx: true,
-    },
     ecmaVersion: 2019,
     sourceType: 'module',
   },
