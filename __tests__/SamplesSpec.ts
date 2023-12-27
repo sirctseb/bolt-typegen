@@ -16,11 +16,11 @@ const samples = samplesFiles.map((file) => {
 });
 
 function testSample(sample: any) {
-  it(sample.name, () => {
+  it(sample.name, async () => {
     const boltString = fs.readFileSync(sample.boltFile).toString();
     const tsString = fs.readFileSync(sample.tsFile).toString();
     const parsed = parser(boltString);
-    const linted = prettier.format(parsed, { parser: 'typescript' });
+    const linted = await prettier.format(parsed, { parser: 'typescript' });
     expect(linted).toBe(tsString);
   });
 }

@@ -305,6 +305,7 @@ class AstTranslator {
       schema.params &&
       schema.params.map((param) =>
         factory.createTypeParameterDeclaration(
+          /* modifiers */ undefined,
           /* name */ factory.createIdentifier(param),
           /* constraint */ this.typeParameterUsedInRecordKey(param, schema)
             ? factory.createUnionTypeNode([
@@ -326,7 +327,6 @@ class AstTranslator {
     const ancestors = this.makeExpressionWithTypeArgumentsArrayFromTypeNode(schema.derivedFrom);
     const hasAncestors = ancestors.length > 0;
     return factory.createInterfaceDeclaration(
-      /* decorators */ undefined,
       /* modifiers */ [factory.createToken(ts.SyntaxKind.ExportKeyword)],
       name,
       /* type parameters */ this.translateTypeParameters(schema),
@@ -361,7 +361,6 @@ class AstTranslator {
       typeDefinition = this.translateTypeExpression(schema.derivedFrom);
     }
     return factory.createTypeAliasDeclaration(
-      /* decorators */ undefined,
       /* modifiers */ [factory.createToken(ts.SyntaxKind.ExportKeyword)],
       name,
       /* type parameters */ this.translateTypeParameters(schema),

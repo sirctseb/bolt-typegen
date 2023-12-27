@@ -7,9 +7,9 @@ export type WithChildren<V> = Record<string, V> & {
 };
 export type RecordAliasDescendant<
   K extends symbol | string | number,
-  V
+  V,
 > = RecordAlias<K, V>;
 export type RecordAliasOrStringDescendant<
   K extends symbol | string | number,
-  V
+  V,
 > = string | RecordAlias<K, V>;
