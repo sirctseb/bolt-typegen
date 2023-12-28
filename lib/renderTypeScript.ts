@@ -24,7 +24,7 @@ class AstTranslator {
    */
   public GenerateDeclarationNodeArray(): ts.NodeArray<ts.TypeAliasDeclaration | ts.InterfaceDeclaration> {
     return factory.createNodeArray(
-      Object.entries(this.manifest).map(([name, schema]) => this.translateTopLevelTypeDeclaration(name, schema))
+      Object.entries(this.manifest).map(([name, schema]) => this.translateTopLevelTypeDeclaration(name, schema)),
     );
   }
 
@@ -55,7 +55,7 @@ class AstTranslator {
    * (e.g., Boolean, Number) or just identifiers like MyType.
    */
   private translateSimpleTypeExpression(
-    builtin: string
+    builtin: string,
   ): ts.KeywordTypeNode<ts.KeywordTypeSyntaxKind> | ts.LiteralTypeNode | ts.TypeReferenceNode {
     if (Object.keys(BOLT_BUILTIN_TO_NATIVE).includes(builtin)) {
       const native = BOLT_BUILTIN_TO_NATIVE[builtin];
@@ -88,7 +88,7 @@ class AstTranslator {
       ? this.translateMapExpression(expression)
       : factory.createTypeReferenceNode(
           factory.createIdentifier(expression.name),
-          expression.params.map(this.translateTypeExpression.bind(this))
+          expression.params.map(this.translateTypeExpression.bind(this)),
         );
   }
 
@@ -212,7 +212,7 @@ class AstTranslator {
       /* modifiers */ undefined,
       name,
       questionMark,
-      this.translateTypeExpression(modifiedDefinition)
+      this.translateTypeExpression(modifiedDefinition),
     );
   }
 
@@ -231,13 +231,13 @@ class AstTranslator {
       return [
         factory.createExpressionWithTypeArguments(
           factory.createIdentifier(expression.name),
-          expression.params.map(this.translateTypeExpression.bind(this))
+          expression.params.map(this.translateTypeExpression.bind(this)),
         ),
       ];
     }
     return expression.types.reduce<ts.ExpressionWithTypeArguments[]>(
       (result, current) => [...result, ...this.makeExpressionWithTypeArgumentsArrayFromTypeNode(current)],
-      []
+      [],
     );
   }
 
@@ -314,8 +314,8 @@ class AstTranslator {
                 factory.createKeywordTypeNode(ts.SyntaxKind.NumberKeyword),
               ])
             : undefined,
-          /* default type */ undefined
-        )
+          /* default type */ undefined,
+        ),
       )
     );
   }
@@ -334,11 +334,13 @@ class AstTranslator {
         ? [
             factory.createHeritageClause(
               ts.SyntaxKind.ExtendsKeyword,
-              this.makeExpressionWithTypeArgumentsArrayFromTypeNode(schema.derivedFrom)
+              this.makeExpressionWithTypeArgumentsArrayFromTypeNode(schema.derivedFrom),
             ),
           ]
         : undefined,
-      Object.entries(schema.properties).map(([name, definition]) => this.translatePropertyDeclaration(name, definition))
+      Object.entries(schema.properties).map(([name, definition]) =>
+        this.translatePropertyDeclaration(name, definition),
+      ),
     );
   }
 
@@ -353,8 +355,8 @@ class AstTranslator {
         this.translateTypeExpression(schema.derivedFrom),
         factory.createTypeLiteralNode(
           Object.entries(schema.properties).map(([name, definition]) =>
-            this.translatePropertyDeclaration(name, definition)
-          )
+            this.translatePropertyDeclaration(name, definition),
+          ),
         ),
       ]);
     } else {
@@ -364,7 +366,7 @@ class AstTranslator {
       /* modifiers */ [factory.createToken(ts.SyntaxKind.ExportKeyword)],
       name,
       /* type parameters */ this.translateTypeParameters(schema),
-      typeDefinition
+      typeDefinition,
     );
   }
 
@@ -389,7 +391,7 @@ class AstTranslator {
   private makeSpecializationParams(schema: Schema, typeArguments: ExpType[]): Record<string, ExpType> {
     if (typeArguments.length !== schema.params?.length) {
       throw new Error(
-        'Error determining if a specialization is concrete, type arguments provided is not the same length as schema params'
+        'Error determining if a specialization is concrete, type arguments provided is not the same length as schema params',
       );
     }
     const specializations: Record<string, ExpType> = {};
@@ -433,7 +435,7 @@ class AstTranslator {
 
   private translateTopLevelTypeDeclaration(
     name: string,
-    schema: Schema
+    schema: Schema,
   ): ts.InterfaceDeclaration | ts.TypeAliasDeclaration {
     const extendable = this.canBeExtended(schema.derivedFrom);
     if (!extendable) {
@@ -450,7 +452,7 @@ const render = (root: Record<string, Schema>): string => {
   return printer.printList(
     ts.ListFormat.SourceFileStatements,
     declarations,
-    ts.createSourceFile('test.ts', '', ts.ScriptTarget.Latest, undefined, ts.ScriptKind.TS)
+    ts.createSourceFile('test.ts', '', ts.ScriptTarget.Latest, undefined, ts.ScriptKind.TS),
   );
 };
 
