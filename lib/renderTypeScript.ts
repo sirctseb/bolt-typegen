@@ -23,8 +23,85 @@ class AstTranslator {
    * Return the top-level interface or type declarations for the Bolt Schemas
    */
   public GenerateDeclarationNodeArray(): ts.NodeArray<ts.TypeAliasDeclaration | ts.InterfaceDeclaration> {
-    return factory.createNodeArray(
-      Object.entries(this.manifest).map(([name, schema]) => this.translateTopLevelTypeDeclaration(name, schema)),
+    return factory.createNodeArray([
+      this.generateFirebaseArrayDeclaration(),
+      this.generateWithoutArrayDeclaration(),
+      ...Object.entries(this.manifest).map(([name, schema]) => this.translateTopLevelTypeDeclaration(name, schema)),
+    ]);
+  }
+
+  private generateFirebaseArrayDeclaration(): ts.TypeAliasDeclaration {
+    return factory.createTypeAliasDeclaration(
+      [factory.createToken(ts.SyntaxKind.ExportKeyword)],
+      factory.createIdentifier('FirebaseArray'),
+      [
+        factory.createTypeParameterDeclaration(
+          undefined,
+          factory.createIdentifier('K'),
+          factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
+          undefined,
+        ),
+        factory.createTypeParameterDeclaration(undefined, factory.createIdentifier('T'), undefined, undefined),
+      ],
+      factory.createUnionTypeNode([
+        factory.createTypeReferenceNode(factory.createIdentifier('Record'), [
+          factory.createTypeReferenceNode(factory.createIdentifier('K'), undefined),
+          factory.createTypeReferenceNode(factory.createIdentifier('T'), undefined),
+        ]),
+        factory.createArrayTypeNode(factory.createTypeReferenceNode(factory.createIdentifier('T'), undefined)),
+      ]),
+    );
+  }
+
+  private generateWithoutArrayDeclaration(): ts.TypeAliasDeclaration {
+    return factory.createTypeAliasDeclaration(
+      [factory.createToken(ts.SyntaxKind.ExportKeyword)],
+      factory.createIdentifier('WithoutArrays'),
+      [factory.createTypeParameterDeclaration(undefined, factory.createIdentifier('Type'), undefined, undefined)],
+      factory.createMappedTypeNode(
+        undefined,
+        factory.createTypeParameterDeclaration(
+          undefined,
+          factory.createIdentifier('Property'),
+          factory.createTypeOperatorNode(
+            ts.SyntaxKind.KeyOfKeyword,
+            factory.createTypeReferenceNode(factory.createIdentifier('Type'), undefined),
+          ),
+          undefined,
+        ),
+        undefined,
+        undefined,
+        factory.createConditionalTypeNode(
+          factory.createIndexedAccessTypeNode(
+            factory.createTypeReferenceNode(factory.createIdentifier('Type'), undefined),
+            factory.createTypeReferenceNode(factory.createIdentifier('Property'), undefined),
+          ),
+          factory.createTypeReferenceNode(factory.createIdentifier('FirebaseArray'), [
+            factory.createInferTypeNode(
+              factory.createTypeParameterDeclaration(
+                undefined,
+                factory.createIdentifier('K'),
+                factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
+                undefined,
+              ),
+            ),
+            factory.createInferTypeNode(
+              factory.createTypeParameterDeclaration(undefined, factory.createIdentifier('T'), undefined, undefined),
+            ),
+          ]),
+          factory.createTypeReferenceNode(factory.createIdentifier('Record'), [
+            factory.createTypeReferenceNode(factory.createIdentifier('K'), undefined),
+            factory.createTypeReferenceNode(factory.createIdentifier('WithoutArrays'), [
+              factory.createTypeReferenceNode(factory.createIdentifier('T'), undefined),
+            ]),
+          ]),
+          factory.createIndexedAccessTypeNode(
+            factory.createTypeReferenceNode(factory.createIdentifier('Type'), undefined),
+            factory.createTypeReferenceNode(factory.createIdentifier('Property'), undefined),
+          ),
+        ),
+        undefined,
+      ),
     );
   }
 
@@ -69,10 +146,20 @@ class AstTranslator {
   }
 
   /**
-   * Map<KeyType, ValueType> => Record<KeyType, ValueType>
+   * Map<KeyType, ValueType> => FirebaseArray<KeyType, ValueType>
+   *
+   * Except when the type also declares non-nullable children, so that
+   * it won't be the case that all keys are integers. We don't have that information
+   * at this level of translation. The suppressArrayTypes parameter tells this method
+   * to make that switch
    */
-  private translateMapExpression(expression: ExpGenericType): ts.TypeReferenceNode {
-    return factory.createTypeReferenceNode(factory.createIdentifier('Record'), [
+  private translateMapExpression(
+    expression: ExpGenericType,
+    suppressArrayTypes: boolean = false,
+  ): ts.TypeReferenceNode {
+    const translatedType = suppressArrayTypes ? 'Record' : 'FirebaseArray';
+
+    return factory.createTypeReferenceNode(factory.createIdentifier(translatedType), [
       this.translateTypeExpression(expression.params[0]),
       this.translateTypeExpression(expression.params[1]),
     ]);
@@ -83,20 +170,25 @@ class AstTranslator {
    * 1. Map<K, V> (handled by translateMapExpression)
    * 2. MyCustomGenericType<T1, T2, T3>
    */
-  private translateGenericTypeExpression(expression: ExpGenericType): ts.TypeReferenceNode {
+  private translateGenericTypeExpression(
+    expression: ExpGenericType,
+    suppressArrayTypes: boolean = false,
+  ): ts.TypeReferenceNode {
     return expression.name === 'Map'
-      ? this.translateMapExpression(expression)
+      ? this.translateMapExpression(expression, suppressArrayTypes)
       : factory.createTypeReferenceNode(
           factory.createIdentifier(expression.name),
-          expression.params.map(this.translateTypeExpression.bind(this)),
+          expression.params.map((exp) => this.translateTypeExpression(exp)),
         );
   }
 
   /**
    * Maps unions, recursively translating the member value types
    */
-  private translateUnionType(expression: ExpUnionType): ts.UnionTypeNode {
-    return factory.createUnionTypeNode(expression.types.map(this.translateTypeExpression.bind(this)));
+  private translateUnionType(expression: ExpUnionType, suppressArrayTypes: boolean = false): ts.UnionTypeNode {
+    return factory.createUnionTypeNode(
+      expression.types.map((exp) => this.translateTypeExpression(exp, suppressArrayTypes)),
+    );
   }
 
   /**
@@ -105,14 +197,14 @@ class AstTranslator {
    * 1. Generic: MyType<T>
    * 1. Union: A | B | C<T>
    */
-  private translateTypeExpression(expression: ExpType): ts.TypeNode {
+  private translateTypeExpression(expression: ExpType, suppressArrayValues: boolean = false): ts.TypeNode {
     if (isSimpleType(expression)) {
       return this.translateSimpleTypeExpression(expression.name);
     }
     if (isGenericType(expression)) {
-      return this.translateGenericTypeExpression(expression);
+      return this.translateGenericTypeExpression(expression, suppressArrayValues);
     }
-    return this.translateUnionType(expression);
+    return this.translateUnionType(expression, suppressArrayValues);
   }
 
   /**
@@ -165,6 +257,8 @@ class AstTranslator {
       if (isGenericType(expression)) {
         schema = this.specializeSchema(schema, this.makeSpecializationParams(schema, expression.params));
       }
+      // TODO I think these should both need to be true, and then we can use the
+      // propertiesAreAllNullable method here. need test cases to verify
       const propertyValues = Object.values(schema.properties);
       return propertyValues.length > 0
         ? propertyValues.every(this.valueCanBeNull.bind(this))
@@ -231,7 +325,7 @@ class AstTranslator {
       return [
         factory.createExpressionWithTypeArguments(
           factory.createIdentifier(expression.name),
-          expression.params.map(this.translateTypeExpression.bind(this)),
+          expression.params.map((exp) => this.translateTypeExpression(exp)),
         ),
       ];
     }
@@ -308,11 +402,7 @@ class AstTranslator {
           /* modifiers */ undefined,
           /* name */ factory.createIdentifier(param),
           /* constraint */ this.typeParameterUsedInRecordKey(param, schema)
-            ? factory.createUnionTypeNode([
-                factory.createKeywordTypeNode(ts.SyntaxKind.SymbolKeyword),
-                factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
-                factory.createKeywordTypeNode(ts.SyntaxKind.NumberKeyword),
-              ])
+            ? factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword)
             : undefined,
           /* default type */ undefined,
         ),
@@ -345,6 +435,14 @@ class AstTranslator {
   }
 
   /**
+   * True iff, for every property, the value can be null. This is used to determine if
+   * we should suppress Array values out of the translated ancestor type when it is a Map
+   */
+  private propertiesAreAllNullable(properties: TypeParams): boolean {
+    return Object.values(properties).every(this.valueCanBeNull.bind(this));
+  }
+
+  /**
    * Handle translation of a type declaration when it cannot be expressed an interface,
    * so we use a type declaration instead.
    */
@@ -352,7 +450,10 @@ class AstTranslator {
     let typeDefinition: ts.TypeNode;
     if (this.hasProperties(schema)) {
       typeDefinition = factory.createIntersectionTypeNode([
-        this.translateTypeExpression(schema.derivedFrom),
+        // If any properties that are the subject of this if block are required,
+        // prevent schema.derivedFrom from being translated to a FirebaseArray. It cannot
+        // take an array value, and we should just use Record.
+        this.translateTypeExpression(schema.derivedFrom, !this.propertiesAreAllNullable(schema.properties)),
         factory.createTypeLiteralNode(
           Object.entries(schema.properties).map(([name, definition]) =>
             this.translatePropertyDeclaration(name, definition),
