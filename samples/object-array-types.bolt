@@ -1,0 +1,41 @@
+type RecordAlias<K, V> extends Map<K, V> {}
+type RecordAliasStringKey<V> extends Map<String, V> {}
+type StringAlias extends String {}
+type RecordAliasStringAliasKey<V> extends Map<StringAlias, V> {}
+
+type ArraySyntaxAlias<V> extends V[] {}
+type SecondOrderArraySyntaxAlias<V> extends ArraySyntaxAlias<V> {}
+
+// this type won't end up as an array because it is guaranteed to have a non-number property
+type WithChildren<V> extends Map<String, V> {
+  child: String;
+}
+
+// this type can end up as an array if the child property is absent and other keys are numbers
+type WithOptionalChildren<V> extends Map<String, V> {
+  child: String | Null;
+}
+
+type WithBoth<V> extends Map<String, V> {
+  child: String | Null;
+  child2: String;
+}
+
+type UsedByWithMapInTypeParameter<V> {
+  child: V;
+}
+
+type WithMapInTypeParameter<V> {
+  child: UsedByWithMapInTypeParameter<Map<String, V>>
+}
+
+type AncestorUnion<V> extends String | Map<String, V> {
+  child: String;
+}
+
+type AncestorUnionOptional<V> extends String | Map<String, V> {
+  child: String | Null;
+}
+
+type RecordAliasDescendant<K, V> extends RecordAlias<K, V> {}
+type RecordAliasOrStringDescendant<K, V> extends String | RecordAlias<K, V> {}
