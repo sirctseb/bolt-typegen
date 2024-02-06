@@ -25,7 +25,7 @@ class AstTranslator {
   public GenerateDeclarationNodeArray(): ts.NodeArray<ts.TypeAliasDeclaration | ts.InterfaceDeclaration> {
     return factory.createNodeArray([
       this.generateFirebaseArrayDeclaration(),
-      this.generateWithoutArrayDeclaration(),
+      // this.generateWithoutArrayDeclaration(),
       ...Object.entries(this.manifest).map(([name, schema]) => this.translateTopLevelTypeDeclaration(name, schema)),
     ]);
   }

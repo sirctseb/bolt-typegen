@@ -1,12 +1,4 @@
 export type FirebaseArray<K extends string, T> = Record<K, T> | T[];
-export type WithoutArrays<Type> = {
-  [Property in keyof Type]: Type[Property] extends FirebaseArray<
-    infer K extends string,
-    infer T
-  >
-    ? Record<K, WithoutArrays<T>>
-    : Type[Property];
-};
 export type RecordAlias<K extends string, V> = FirebaseArray<K, V>;
 export type RecordAliasStringKey<V> = FirebaseArray<string, V>;
 export type StringAlias = string;
