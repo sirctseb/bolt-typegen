@@ -1,3 +1,4 @@
+export type FirebaseArray<K extends string, T> = Record<K, T> | T[];
 export type PositiveInteger = number;
 export type UnixTimestamp = PositiveInteger;
 export type NonEmptyString = string;

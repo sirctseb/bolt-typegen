@@ -1,6 +1,7 @@
+export type FirebaseArray<K extends string, T> = Record<K, T> | T[];
 export interface App {
-  users?: Record<PushID, User>;
-  products?: Record<ProductID, Product>;
+  users?: FirebaseArray<PushID, User>;
+  products?: FirebaseArray<ProductID, Product>;
 }
 export interface User {
   name: string;

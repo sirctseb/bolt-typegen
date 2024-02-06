@@ -1,3 +1,4 @@
+export type FirebaseArray<K extends string, T> = Record<K, T> | T[];
 export type NotStaticallyKnown<T> = T & {
   child: string;
 };

@@ -1,6 +1,7 @@
+export type FirebaseArray<K extends string, T> = Record<K, T> | T[];
 export interface Child {
   age: number;
 }
 export interface Parent {
-  children?: Record<string, Child>;
+  children?: FirebaseArray<string, Child>;
 }

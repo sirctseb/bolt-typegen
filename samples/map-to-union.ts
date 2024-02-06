@@ -1,3 +1,4 @@
+export type FirebaseArray<K extends string, T> = Record<K, T> | T[];
 export interface MapToUnion {
-  field?: Record<string, string | number>;
+  field?: FirebaseArray<string, string | number>;
 }

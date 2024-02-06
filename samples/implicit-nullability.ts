@@ -1,8 +1,9 @@
+export type FirebaseArray<K extends string, T> = Record<K, T> | T[];
 export interface A {
-  mapField?: Record<string, boolean>;
+  mapField?: FirebaseArray<string, boolean>;
 }
 export interface B {
-  mapField?: Record<string, boolean>;
+  mapField?: FirebaseArray<string, boolean>;
 }
 export interface C {
   nullableField?: boolean;

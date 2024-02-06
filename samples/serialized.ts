@@ -1,3 +1,4 @@
+export type FirebaseArray<K extends string, T> = Record<K, T> | T[];
 export interface Product {
   name: string;
   cost: number;

@@ -1,7 +1,8 @@
+export type FirebaseArray<K extends string, T> = Record<K, T> | T[];
 export interface RoomInfo {
   name: NameString;
   creator: UserID;
-  members?: Record<string, Member>;
+  members?: FirebaseArray<string, Member>;
 }
 export interface Post {
   from: UserID;
