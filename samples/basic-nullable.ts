@@ -1,4 +1,4 @@
 export type FirebaseArray<K extends string, T> = Record<K, T> | T[];
-export interface HasNullable {
+export type HasNullable = {
   child?: string;
-}
+};

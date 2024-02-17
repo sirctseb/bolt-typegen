@@ -5,9 +5,8 @@ export type NotStaticallyKnown<T> = T & {
 export type NotStaticallyKnownSubType<T> = NotStaticallyKnown<T> & {
   another: string;
 };
-export interface ConcreteType {
+export type ConcreteType = {
   ok: string;
-}
-export interface DirectDescdendant extends NotStaticallyKnown<ConcreteType> {}
-export interface SecondDescendant
-  extends NotStaticallyKnownSubType<ConcreteType> {}
+};
+export type DirectDescdendant = NotStaticallyKnown<ConcreteType>;
+export type SecondDescendant = NotStaticallyKnownSubType<ConcreteType>;

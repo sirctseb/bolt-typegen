@@ -39,24 +39,6 @@ firebase.database().ref('/').once('value').then(snapshot => {
 
 ## Features
 
-### Preference for interface declarations with type declaration fallback
-
-Bolt type definitions are translated to interface declarations whenever possible, and type declarations otherwise, such as when the type extends a native type or a Map (which are rendered as `Record`s). It is possible to declare interfaces that extend `Record`s, for example, when `string` is passed as the key type argument, but we do not detect and emit interface declarations for those cases yet.
-
-```bolt
-type NativeExtension extends String {}
-type ObjectExtension {
-  child: String;
-}
-```
-
-```ts
-export type NativeExtension = String;
-export interface ObjectExtension {
-  child: string;
-}
-```
-
 ### Optional properties
 
 In the Firebase realtime database, a field cannot hold null as a value. Assigning null to a field removes the field from the object entirely. Therefore, given a bolt type like:

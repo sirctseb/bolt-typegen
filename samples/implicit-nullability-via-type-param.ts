@@ -1,12 +1,12 @@
 export type FirebaseArray<K extends string, T> = Record<K, T> | T[];
-export interface TemplateType<T> {
+export type TemplateType<T> = {
   child: T | string;
-}
-export interface StringHost {
+};
+export type StringHost = {
   keepAlive: string;
   child: TemplateType<string>;
-}
-export interface NullHost {
+};
+export type NullHost = {
   keepAlive: string;
   child?: TemplateType<null>;
-}
+};

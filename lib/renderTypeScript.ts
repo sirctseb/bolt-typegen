@@ -120,14 +120,6 @@ class AstTranslator {
   }
 
   /**
-   * Return true iff the expression is just one of the entries in NATIVE_TYPES.
-   * These cannot be extended with a TypeScript interface that declared properties.
-   */
-  private isNative(expression: ExpType) {
-    return isSimpleType(expression) && NATIVE_TYPES.includes(expression.name);
-  }
-
-  /**
    * Map non-generic type expressions to TypeScript equivalents. Either keywords
    * (e.g., Boolean, Number) or just identifiers like MyType.
    */
@@ -198,11 +190,11 @@ class AstTranslator {
    * 1. Union: A | B | C<T>
    */
   private translateTypeExpression(expression: ExpType, suppressArrayValues: boolean = false): ts.TypeNode {
-    if (isSimpleType(expression)) {
-      return this.translateSimpleTypeExpression(expression.name);
-    }
     if (isGenericType(expression)) {
       return this.translateGenericTypeExpression(expression, suppressArrayValues);
+    }
+    if (isSimpleType(expression)) {
+      return this.translateSimpleTypeExpression(expression.name);
     }
     return this.translateUnionType(expression, suppressArrayValues);
   }
@@ -311,31 +303,6 @@ class AstTranslator {
   }
 
   /**
-   * Translate a Bolt heritage clause (extends SomethingOrOther<T> | OtherThing) to TypeScript.
-   * TODO I don't remember why this translation would be different than translateTypeExpression.
-   */
-  private makeExpressionWithTypeArgumentsArrayFromTypeNode(expression: ExpType): ts.ExpressionWithTypeArguments[] {
-    if (isSimpleType(expression)) {
-      if (expression.name !== 'Object') {
-        return [factory.createExpressionWithTypeArguments(factory.createIdentifier(expression.name), [])];
-      }
-      return [];
-    }
-    if (isGenericType(expression)) {
-      return [
-        factory.createExpressionWithTypeArguments(
-          factory.createIdentifier(expression.name),
-          expression.params.map((exp) => this.translateTypeExpression(exp)),
-        ),
-      ];
-    }
-    return expression.types.reduce<ts.ExpressionWithTypeArguments[]>(
-      (result, current) => [...result, ...this.makeExpressionWithTypeArgumentsArrayFromTypeNode(current)],
-      [],
-    );
-  }
-
-  /**
    * Return true iff the expression looks like Map<K, V> given `param` K.
    */
   private isMapWithGivenKeyTypeArg(expression: ExpGenericType, param: string) {
@@ -411,30 +378,6 @@ class AstTranslator {
   }
 
   /**
-   * Handle translation of a type declaration when it can be expressed as an interface
-   */
-  private translateTypeDeclarationToInterface(name: string, schema: Schema): ts.InterfaceDeclaration {
-    const ancestors = this.makeExpressionWithTypeArgumentsArrayFromTypeNode(schema.derivedFrom);
-    const hasAncestors = ancestors.length > 0;
-    return factory.createInterfaceDeclaration(
-      /* modifiers */ [factory.createToken(ts.SyntaxKind.ExportKeyword)],
-      name,
-      /* type parameters */ this.translateTypeParameters(schema),
-      /* heritage clause */ hasAncestors
-        ? [
-            factory.createHeritageClause(
-              ts.SyntaxKind.ExtendsKeyword,
-              this.makeExpressionWithTypeArgumentsArrayFromTypeNode(schema.derivedFrom),
-            ),
-          ]
-        : undefined,
-      Object.entries(schema.properties).map(([name, definition]) =>
-        this.translatePropertyDeclaration(name, definition),
-      ),
-    );
-  }
-
-  /**
    * True iff, for every property, the value can be null. This is used to determine if
    * we should suppress Array values out of the translated ancestor type when it is a Map
    */
@@ -449,17 +392,25 @@ class AstTranslator {
   private translateTypeDeclarationToTypeAlias(name: string, schema: Schema): ts.TypeAliasDeclaration {
     let typeDefinition: ts.TypeNode;
     if (this.hasProperties(schema)) {
-      typeDefinition = factory.createIntersectionTypeNode([
-        // If any properties that are the subject of this if block are required,
-        // prevent schema.derivedFrom from being translated to a FirebaseArray. It cannot
-        // take an array value, and we should just use Record.
-        this.translateTypeExpression(schema.derivedFrom, !this.propertiesAreAllNullable(schema.properties)),
-        factory.createTypeLiteralNode(
-          Object.entries(schema.properties).map(([name, definition]) =>
-            this.translatePropertyDeclaration(name, definition),
-          ),
+      const declaredTypeLiteral = factory.createTypeLiteralNode(
+        Object.entries(schema.properties).map(([name, definition]) =>
+          this.translatePropertyDeclaration(name, definition),
         ),
-      ]);
+      );
+
+      // if derivedFrom is just 'Object', we don't need to do the intersection at all
+      // we can just omit it
+      if (isSimpleType(schema.derivedFrom) && schema.derivedFrom.name === 'Object') {
+        typeDefinition = declaredTypeLiteral;
+      } else {
+        typeDefinition = factory.createIntersectionTypeNode([
+          // If any properties that are the subject of this if block are required,
+          // prevent schema.derivedFrom from being translated to a FirebaseArray. It cannot
+          // take an array value, and we should just use Record.
+          this.translateTypeExpression(schema.derivedFrom, !this.propertiesAreAllNullable(schema.properties)),
+          declaredTypeLiteral,
+        ]);
+      }
     } else {
       typeDefinition = this.translateTypeExpression(schema.derivedFrom);
     }
@@ -503,46 +454,11 @@ class AstTranslator {
     return specializations;
   }
 
-  private isExtendableSpecialization(schema: Schema, typeArguments: ExpType[]): boolean {
-    const specializations = this.makeSpecializationParams(schema, typeArguments);
-    const specialized = this.specializeExpression(schema.derivedFrom, specializations);
-    return this.canBeExtended(specialized);
-  }
-
-  private canBeExtended(expression: ExpType): boolean {
-    if (isUnionType(expression)) {
-      return expression.types.every(this.canBeExtended.bind(this));
-    }
-    if (isGenericType(expression)) {
-      if (expression.name === 'Map') {
-        // there are cases when Map extensisons can translate to
-        // interfaces but the conditions are not exactly clear nor is
-        // how we could implement the detection of those conditions.
-        return false;
-      }
-      return (
-        this.manifest[expression.name] &&
-        this.isExtendableSpecialization(this.manifest[expression.name], expression.params)
-      );
-    }
-    if (expression.name === 'Object') {
-      return true;
-    }
-    if (this.isNative(expression)) {
-      return false;
-    }
-    return this.manifest[expression.name] && this.canBeExtended(this.manifest[expression.name].derivedFrom);
-  }
-
   private translateTopLevelTypeDeclaration(
     name: string,
     schema: Schema,
   ): ts.InterfaceDeclaration | ts.TypeAliasDeclaration {
-    const extendable = this.canBeExtended(schema.derivedFrom);
-    if (!extendable) {
-      return this.translateTypeDeclarationToTypeAlias(name, schema);
-    }
-    return this.translateTypeDeclarationToInterface(name, schema);
+    return this.translateTypeDeclarationToTypeAlias(name, schema);
   }
 }
 

@@ -1,7 +1,7 @@
 export type FirebaseArray<K extends string, T> = Record<K, T> | T[];
-export interface BaseObject {
+export type BaseObject = {
   child: string;
-}
-export interface DerivedObject extends BaseObject {
+};
+export type DerivedObject = BaseObject & {
   otherChild: number;
-}
+};

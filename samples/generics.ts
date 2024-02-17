@@ -1,15 +1,15 @@
 export type FirebaseArray<K extends string, T> = Record<K, T> | T[];
-export interface App {
+export type App = {
   users?: FirebaseArray<PushID, User>;
   products?: FirebaseArray<ProductID, Product>;
-}
-export interface User {
+};
+export type User = {
   name: string;
   age: number;
-}
-export interface Product {
+};
+export type Product = {
   id: ProductID;
   cost: number;
-}
+};
 export type ProductID = string;
 export type PushID = string;

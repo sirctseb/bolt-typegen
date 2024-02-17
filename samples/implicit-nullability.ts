@@ -1,23 +1,23 @@
 export type FirebaseArray<K extends string, T> = Record<K, T> | T[];
-export interface A {
+export type A = {
   mapField?: FirebaseArray<string, boolean>;
-}
-export interface B {
+};
+export type B = {
   mapField?: FirebaseArray<string, boolean>;
-}
-export interface C {
+};
+export type C = {
   nullableField?: boolean;
-}
-export interface CHost {
+};
+export type CHost = {
   c?: C;
-}
-export interface E {
+};
+export type E = {
   nullableField?: boolean;
-}
-export interface D {
+};
+export type D = {
   nullableField?: boolean;
   e?: E;
-}
-export interface DHost {
+};
+export type DHost = {
   d?: D;
-}
+};
