@@ -5,6 +5,9 @@ export type StringAlias = string;
 export type RecordAliasStringAliasKey<V> = FirebaseArray<StringAlias, V>;
 export type ArraySyntaxAlias<V> = FirebaseArray<string, V>;
 export type SecondOrderArraySyntaxAlias<V> = ArraySyntaxAlias<V>;
+export interface SimpleChild {
+  child?: FirebaseArray<string, string>;
+}
 export type WithChildren<V> = Record<string, V> & {
   child: string;
 };

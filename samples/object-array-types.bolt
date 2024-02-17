@@ -6,6 +6,10 @@ type RecordAliasStringAliasKey<V> extends Map<StringAlias, V> {}
 type ArraySyntaxAlias<V> extends V[] {}
 type SecondOrderArraySyntaxAlias<V> extends ArraySyntaxAlias<V> {}
 
+type SimpleChild {
+  child: String[];
+}
+
 // this type won't end up as an array because it is guaranteed to have a non-number property
 type WithChildren<V> extends Map<String, V> {
   child: String;
