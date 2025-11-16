@@ -1,6 +1,6 @@
 {
   "name": "@sirctseb/bolt-typegen",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Generate TypeScript types from bolt security rules",
   "bin": {
     "bolt-typegen": "dist/cli.js"
